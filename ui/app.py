@@ -258,6 +258,20 @@ class App(tk.Tk):
                   font=F_SMALL, padx=10, pady=5,
                   command=self._clear_test).grid(row=0, column=4)
 
+        # Zoom controls for explanation text
+        tk.Frame(ctrl, bg=SURFACE, width=1).grid(row=0, column=5, sticky="ns", padx=(10, 4))
+        tk.Button(ctrl, text="A−", fg=MUTED, bg=SURFACE,
+                  activeforeground=TEXT, activebackground=BORDER, relief="flat",
+                  cursor="hand2", font=("Segoe UI", 10, "bold"), padx=8, pady=2,
+                  command=lambda: self._resize_test_output(-2)).grid(row=0, column=6, padx=(0, 2))
+        self._test_output_size_lbl = tk.Label(ctrl, text="11pt", fg=MUTED, bg=SURFACE,
+                                              font=("Segoe UI", 9), width=4)
+        self._test_output_size_lbl.grid(row=0, column=7, padx=(0, 2))
+        tk.Button(ctrl, text="A+", fg=ACCENT, bg=SURFACE,
+                  activeforeground=TEXT, activebackground=BORDER, relief="flat",
+                  cursor="hand2", font=("Segoe UI", 10, "bold"), padx=8, pady=2,
+                  command=lambda: self._resize_test_output(+2)).grid(row=0, column=8)
+
         # Output area
         tk.Label(f, text="Explanation:", fg=MUTED, bg=BG,
                  font=F_SMALL, anchor="w").grid(row=3, column=0, sticky="new",
@@ -272,6 +286,12 @@ class App(tk.Tk):
         self.test_output.grid(row=3, column=0, sticky="nsew", padx=16, pady=(0, 12))
         self.test_output.tag_configure("error", foreground=ERROR)
         self.test_output.tag_configure("done_marker", foreground=SUCCESS)
+
+        # Zoom controls for explanation text
+        self._test_output_font_size = 11  # default size
+        self.test_output.bind("<Control-MouseWheel>", self._on_test_output_zoom)
+        self.test_output.bind("<Control-Button-4>", self._on_test_output_zoom)
+        self.test_output.bind("<Control-Button-5>", self._on_test_output_zoom)
 
         self._test_queue: queue.Queue = queue.Queue()
 
@@ -300,6 +320,12 @@ class App(tk.Tk):
         self.log_box.tag_configure("TIME", foreground="#45475a")
         self.log_box.tag_configure("MSG", foreground=TEXT)
 
+        # Zoom controls for log text
+        self._log_font_size = 9  # default from F_LOG
+        self.log_box.bind("<Control-MouseWheel>", self._on_log_zoom)
+        self.log_box.bind("<Control-Button-4>", self._on_log_zoom)
+        self.log_box.bind("<Control-Button-5>", self._on_log_zoom)
+
         btn_bar = tk.Frame(f, bg=BG, pady=6)
         btn_bar.grid(row=1, column=0, sticky="ew", padx=12)
 
@@ -312,6 +338,20 @@ class App(tk.Tk):
         tk.Checkbutton(btn_bar, text="Auto-scroll", variable=self.autoscroll_var,
                        fg=MUTED, bg=BG, activebackground=BG,
                        selectcolor=SURFACE, font=F_SMALL).pack(side="left", padx=12)
+
+        # Zoom controls for log text
+        tk.Frame(btn_bar, bg=SURFACE, width=1).pack(side="left", fill="y", padx=10)
+        tk.Button(btn_bar, text="A−", fg=MUTED, bg=SURFACE,
+                  activeforeground=TEXT, activebackground=BORDER, relief="flat",
+                  cursor="hand2", font=("Segoe UI", 10, "bold"), padx=8, pady=2,
+                  command=lambda: self._resize_log(-2)).pack(side="left", padx=(10, 2))
+        self._log_size_lbl = tk.Label(btn_bar, text="9pt", fg=MUTED, bg=SURFACE,
+                                      font=("Segoe UI", 9), width=4)
+        self._log_size_lbl.pack(side="left", padx=(0, 2))
+        tk.Button(btn_bar, text="A+", fg=ACCENT, bg=SURFACE,
+                  activeforeground=TEXT, activebackground=BORDER, relief="flat",
+                  cursor="hand2", font=("Segoe UI", 10, "bold"), padx=8, pady=2,
+                  command=lambda: self._resize_log(+2)).pack(side="left", padx=2)
 
     # ── Toggle & labels ───────────────────────────────────────────────────────
 
@@ -399,6 +439,25 @@ class App(tk.Tk):
         self.log_box.delete("1.0", "end")
         self.log_box.configure(state="disabled")
 
+    def _resize_log(self, delta: int):
+        """Resize font in Logs tab."""
+        new_size = max(8, min(30, self._log_font_size + delta))
+        self._log_font_size = new_size
+        self.log_box.configure(font=("Consolas", new_size))
+        self._log_size_lbl.configure(text=f"{new_size}pt")
+
+    def _on_log_zoom(self, event):
+        """Handle Ctrl+MouseWheel to zoom log text."""
+        if hasattr(event, "num"):          # Linux X11
+            delta = +2 if event.num == 4 else -2
+        else:                              # Windows / WSL
+            delta = +2 if event.delta > 0 else -2
+        new_size = max(8, min(30, self._log_font_size + delta))
+        self._log_font_size = new_size
+        self.log_box.configure(font=("Consolas", new_size))
+        self._log_size_lbl.configure(text=f"{new_size}pt")
+        return "break"
+
     def _on_code_detected(self, code: str):
         if self._processing:
             self._on_log("DEBUG", "Popup suppressed — already processing another snippet")
@@ -484,6 +543,9 @@ class App(tk.Tk):
         self.test_output.configure(state="disabled")
         self._on_log("INFO", f"Test explain triggered ({len(code)} chars)")
 
+        # Reset font size on new explain
+        self._resize_test_output(0)
+
         prompt_name = self.test_prompt_var.get()
         prompt_text = self.config_obj.get_prompt_text(prompt_name)
         self._on_log("INFO", f"Test prompt: '{prompt_name}'")
@@ -540,6 +602,24 @@ class App(tk.Tk):
         self.test_output.delete("1.0", "end")
         self.test_output.configure(state="disabled")
         self.test_status_lbl.configure(text="")
+
+    def _resize_test_output(self, delta: int):
+        """Resize font in Test LLM tab explanation output."""
+        new_size = max(9, min(40, self._test_output_font_size + delta))
+        self._test_output_font_size = new_size
+        self.test_output.configure(font=("Segoe UI", new_size))
+        self._test_output_size_lbl.configure(text=f"{new_size}pt")
+
+    def _on_test_output_zoom(self, event):
+        """Handle Ctrl+MouseWheel to zoom explanation text in Test LLM tab."""
+        if hasattr(event, "num"):          # Linux X11
+            delta = +2 if event.num == 4 else -2
+        else:                              # Windows / WSL
+            delta = +2 if event.delta > 0 else -2
+        new_size = max(9, min(40, self._test_output_font_size + delta))
+        self._test_output_font_size = new_size
+        self.test_output.configure(font=("Segoe UI", new_size))
+        return "break"
 
     # ── Settings ──────────────────────────────────────────────────────────────
 
