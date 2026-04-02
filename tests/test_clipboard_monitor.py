@@ -1,17 +1,19 @@
 """
 Tests for clipboard monitoring functionality.
 """
-import sys
+
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import re
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, Mock, patch
 
 from clipboard_monitor import (
+    ClipboardMonitor,
     _get_clipboard,
     is_likely_code,
-    ClipboardMonitor,
 )
 
 
@@ -66,7 +68,9 @@ def main():
         for code, expected_pattern in patterns:
             is_code, reason = is_likely_code(code, min_length=10)
             assert is_code is True, f"Failed for: {code}"
-            assert expected_pattern.lower() in reason, f"Pattern {expected_pattern} not found in: {reason}"
+            assert (
+                expected_pattern.lower() in reason
+            ), f"Pattern {expected_pattern} not found in: {reason}"
 
     def test_indented_blocks(self):
         """Test detection of indented code blocks."""
@@ -110,6 +114,7 @@ class TestClipboardMonitor:
         monitor.stop()
         # Give thread time to stop
         import time
+
         time.sleep(0.2)
         assert not monitor._thread.is_alive()
 
@@ -128,6 +133,7 @@ class TestClipboardMonitor:
             monitor.start()
 
             import time
+
             time.sleep(0.3)
 
             # Callback should have been called
@@ -161,6 +167,7 @@ class TestClipboardMonitor:
             monitor.start()
 
             import time
+
             time.sleep(0.4)
 
             # Should only be called twice (new code detected)

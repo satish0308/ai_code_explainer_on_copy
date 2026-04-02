@@ -1,16 +1,18 @@
 """
 Tests for the configuration module.
 """
-import os
-import tempfile
+
 import json
-from pathlib import Path
+import os
 
 # Mock the config module by adding parent to path
 import sys
+import tempfile
+from pathlib import Path
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import Config, DEFAULT_CONFIG, DEFAULT_PROMPTS
+from config import DEFAULT_CONFIG, DEFAULT_PROMPTS, Config
 
 
 def test_config_default_values():

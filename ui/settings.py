@@ -3,48 +3,57 @@ Settings dialog — Provider, Models, Prompts, Preferences tabs.
 """
 
 import copy
-import tkinter as tk
-from tkinter import ttk, messagebox
 import threading
-from config import Config, DEFAULT_PROMPTS
-from ai_providers import build_provider, OllamaProvider
+import tkinter as tk
+from tkinter import messagebox, ttk
 
-BG          = "#1e1e2e"
-PANEL       = "#181825"
-TEXT        = "#cdd6f4"
-MUTED       = "#6c7086"
-ACCENT      = "#89b4fa"
-SURFACE     = "#313244"
-BORDER      = "#45475a"
-SUCCESS     = "#a6e3a1"
-ERROR       = "#f38ba8"
-CODE_BG     = "#11111b"
+from ai_providers import OllamaProvider, build_provider
+from config import DEFAULT_PROMPTS, Config
+
+BG = "#1e1e2e"
+PANEL = "#181825"
+TEXT = "#cdd6f4"
+MUTED = "#6c7086"
+ACCENT = "#89b4fa"
+SURFACE = "#313244"
+BORDER = "#45475a"
+SUCCESS = "#a6e3a1"
+ERROR = "#f38ba8"
+CODE_BG = "#11111b"
 
 import platform
 
 SYSTEM = platform.system()
 if SYSTEM == "Darwin":  # macOS
-    F_UI    = ("SF Pro Display", 11)
+    F_UI = ("SF Pro Display", 11)
     F_SMALL = ("SF Pro Display", 10)
-    F_BOLD  = ("SF Pro Display", 11, "bold")
-    F_MONO  = ("Menlo", 11)
+    F_BOLD = ("SF Pro Display", 11, "bold")
+    F_MONO = ("Menlo", 11)
 elif SYSTEM == "Windows":
-    F_UI    = ("Segoe UI", 11)
+    F_UI = ("Segoe UI", 11)
     F_SMALL = ("Segoe UI", 10)
-    F_BOLD  = ("Segoe UI", 11, "bold")
-    F_MONO  = ("Consolas", 11)
+    F_BOLD = ("Segoe UI", 11, "bold")
+    F_MONO = ("Consolas", 11)
 else:  # Linux
-    F_UI    = ("DejaVu Sans", 10)
+    F_UI = ("DejaVu Sans", 10)
     F_SMALL = ("DejaVu Sans", 9)
-    F_BOLD  = ("DejaVu Sans", 10, "bold")
-    F_MONO  = ("DejaVu Sans Mono", 10)
+    F_BOLD = ("DejaVu Sans", 10, "bold")
+    F_MONO = ("DejaVu Sans Mono", 10)
 
 
 def _entry(parent, **kw) -> tk.Entry:
-    e = tk.Entry(parent, bg=SURFACE, fg=TEXT, insertbackground=TEXT,
-                 relief="flat", highlightthickness=1,
-                 highlightbackground=BORDER, highlightcolor=ACCENT,
-                 font=F_UI, **kw)
+    e = tk.Entry(
+        parent,
+        bg=SURFACE,
+        fg=TEXT,
+        insertbackground=TEXT,
+        relief="flat",
+        highlightthickness=1,
+        highlightbackground=BORDER,
+        highlightcolor=ACCENT,
+        font=F_UI,
+        **kw,
+    )
     return e
 
 
@@ -84,17 +93,29 @@ class SettingsDialog(tk.Toplevel):
     def _build_ui(self):
         style = ttk.Style(self)
         style.theme_use("clam")
-        style.configure("TNotebook",     background=PANEL, borderwidth=0)
-        style.configure("TNotebook.Tab", background=PANEL, foreground=MUTED,
-                        padding=[16, 8], font=F_UI)
-        style.map("TNotebook.Tab",
-                  background=[("selected", BG)],
-                  foreground=[("selected", ACCENT)])
+        style.configure("TNotebook", background=PANEL, borderwidth=0)
+        style.configure(
+            "TNotebook.Tab",
+            background=PANEL,
+            foreground=MUTED,
+            padding=[16, 8],
+            font=F_UI,
+        )
+        style.map(
+            "TNotebook.Tab",
+            background=[("selected", BG)],
+            foreground=[("selected", ACCENT)],
+        )
         style.configure("TFrame", background=BG)
-        style.configure("TCombobox",
-                        fieldbackground=SURFACE, background=SURFACE,
-                        foreground=TEXT, selectbackground=ACCENT,
-                        selectforeground="#000", arrowcolor=ACCENT)
+        style.configure(
+            "TCombobox",
+            fieldbackground=SURFACE,
+            background=SURFACE,
+            foreground=TEXT,
+            selectbackground=ACCENT,
+            selectforeground="#000",
+            arrowcolor=ACCENT,
+        )
 
         nb = ttk.Notebook(self)
         nb.grid(row=0, column=0, sticky="nsew")
@@ -108,15 +129,33 @@ class SettingsDialog(tk.Toplevel):
         bar = tk.Frame(self, bg=PANEL, pady=8)
         bar.grid(row=1, column=0, sticky="ew")
 
-        tk.Button(bar, text="Save", bg=ACCENT, fg="#000",
-                  activebackground="#74c7ec", relief="flat", cursor="hand2",
-                  font=F_BOLD, padx=22, pady=6,
-                  command=self._save).pack(side="right", padx=14)
+        tk.Button(
+            bar,
+            text="Save",
+            bg=ACCENT,
+            fg="#000",
+            activebackground="#74c7ec",
+            relief="flat",
+            cursor="hand2",
+            font=F_BOLD,
+            padx=22,
+            pady=6,
+            command=self._save,
+        ).pack(side="right", padx=14)
 
-        tk.Button(bar, text="Cancel", bg=PANEL, fg=MUTED,
-                  activebackground=SURFACE, relief="flat", cursor="hand2",
-                  font=F_UI, padx=14, pady=6,
-                  command=self.destroy).pack(side="right", padx=4)
+        tk.Button(
+            bar,
+            text="Cancel",
+            bg=PANEL,
+            fg=MUTED,
+            activebackground=SURFACE,
+            relief="flat",
+            cursor="hand2",
+            font=F_UI,
+            padx=14,
+            pady=6,
+            command=self.destroy,
+        ).pack(side="right", padx=4)
 
         self.status_lbl = tk.Label(bar, text="", fg=MUTED, bg=PANEL, font=F_SMALL)
         self.status_lbl.pack(side="left", padx=14)
@@ -130,48 +169,76 @@ class SettingsDialog(tk.Toplevel):
 
         _section(f, "Active Provider", 0)
         self.provider_var = tk.StringVar(value=self.config.provider)
-        for i, (val, label, desc) in enumerate([
-            ("ollama", "Ollama (Local)", "No API key — runs on your machine"),
-            ("openai", "OpenAI",         "GPT-4o, GPT-4-turbo, o3-mini …"),
-            ("nvidia", "NVIDIA NIM",     "Cloud-hosted open models via NVIDIA"),
-            ("gemini", "Google Gemini",  "Gemini 2.0 Flash, 1.5 Pro …"),
-        ]):
+        for i, (val, label, desc) in enumerate(
+            [
+                ("ollama", "Ollama (Local)", "No API key — runs on your machine"),
+                ("openai", "OpenAI", "GPT-4o, GPT-4-turbo, o3-mini …"),
+                ("nvidia", "NVIDIA NIM", "Cloud-hosted open models via NVIDIA"),
+                ("gemini", "Google Gemini", "Gemini 2.0 Flash, 1.5 Pro …"),
+            ]
+        ):
             row = tk.Frame(f, bg=BG)
             row.grid(row=i + 1, column=0, columnspan=3, sticky="ew", padx=16, pady=3)
-            tk.Radiobutton(row, text=label, variable=self.provider_var, value=val,
-                           bg=BG, fg=TEXT, activebackground=BG, activeforeground=ACCENT,
-                           selectcolor=SURFACE, font=F_BOLD,
-                           cursor="hand2").pack(side="left")
-            tk.Label(row, text=f"  {desc}", fg=MUTED, bg=BG,
-                     font=F_SMALL).pack(side="left")
+            tk.Radiobutton(
+                row,
+                text=label,
+                variable=self.provider_var,
+                value=val,
+                bg=BG,
+                fg=TEXT,
+                activebackground=BG,
+                activeforeground=ACCENT,
+                selectcolor=SURFACE,
+                font=F_BOLD,
+                cursor="hand2",
+            ).pack(side="left")
+            tk.Label(row, text=f"  {desc}", fg=MUTED, bg=BG, font=F_SMALL).pack(
+                side="left"
+            )
 
         _section(f, "API Keys", 5)
-        self.openai_key = self._key_row(f, "OpenAI API Key", 6,
-                                        self.config.data["api_keys"].get("openai", ""))
-        self.nvidia_key = self._key_row(f, "NVIDIA API Key", 7,
-                                        self.config.data["api_keys"].get("nvidia", ""))
-        self.gemini_key = self._key_row(f, "Gemini API Key", 8,
-                                        self.config.data["api_keys"].get("gemini", ""))
+        self.openai_key = self._key_row(
+            f, "OpenAI API Key", 6, self.config.data["api_keys"].get("openai", "")
+        )
+        self.nvidia_key = self._key_row(
+            f, "NVIDIA API Key", 7, self.config.data["api_keys"].get("nvidia", "")
+        )
+        self.gemini_key = self._key_row(
+            f, "Gemini API Key", 8, self.config.data["api_keys"].get("gemini", "")
+        )
 
         _section(f, "Ollama", 9)
-        tk.Label(f, text="Ollama Host", fg=TEXT, bg=BG,
-                 font=F_UI).grid(row=10, column=0, sticky="w", padx=16, pady=4)
+        tk.Label(f, text="Ollama Host", fg=TEXT, bg=BG, font=F_UI).grid(
+            row=10, column=0, sticky="w", padx=16, pady=4
+        )
         self.ollama_host = _entry(f, width=42)
-        self.ollama_host.insert(0, self.config.data.get("ollama_host", "http://localhost:11434"))
+        self.ollama_host.insert(
+            0, self.config.data.get("ollama_host", "http://localhost:11434")
+        )
         self.ollama_host.grid(row=10, column=1, sticky="ew", padx=(0, 14), pady=4)
 
-        self.test_btn = tk.Button(f, text="Test Connection", fg=TEXT,
-                                  bg=SURFACE, activebackground=BORDER,
-                                  relief="flat", cursor="hand2", font=F_UI,
-                                  padx=12, pady=5, command=self._test_connection)
+        self.test_btn = tk.Button(
+            f,
+            text="Test Connection",
+            fg=TEXT,
+            bg=SURFACE,
+            activebackground=BORDER,
+            relief="flat",
+            cursor="hand2",
+            font=F_UI,
+            padx=12,
+            pady=5,
+            command=self._test_connection,
+        )
         self.test_btn.grid(row=11, column=1, sticky="w", padx=(0, 14), pady=8)
 
         self.test_result = tk.Label(f, text="", fg=MUTED, bg=BG, font=F_SMALL)
         self.test_result.grid(row=12, column=0, columnspan=2, padx=16, sticky="w")
 
     def _key_row(self, parent, label: str, row: int, value: str) -> tk.Entry:
-        tk.Label(parent, text=label, fg=TEXT, bg=BG,
-                 font=F_UI).grid(row=row, column=0, sticky="w", padx=16, pady=4)
+        tk.Label(parent, text=label, fg=TEXT, bg=BG, font=F_UI).grid(
+            row=row, column=0, sticky="w", padx=16, pady=4
+        )
         e = _entry(parent, show="*", width=42)
         e.insert(0, value)
         e.grid(row=row, column=1, sticky="ew", padx=(0, 14), pady=4)
@@ -186,33 +253,71 @@ class SettingsDialog(tk.Toplevel):
         self.model_vars = {}
         self.model_combos = {}
 
-        for i, (provider, label, defaults) in enumerate([
-            ("openai", "OpenAI Model",
-             ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo", "o1-mini", "o3-mini"]),
-            ("nvidia", "NVIDIA Model", [
-                "meta/llama-3.1-70b-instruct", "meta/llama-3.1-8b-instruct",
-                "meta/llama-3.3-70b-instruct", "nvidia/llama-3.1-nemotron-70b-instruct",
-                "mistralai/mixtral-8x22b-instruct-v0.1", "deepseek-ai/deepseek-r1",
-            ]),
-            ("gemini", "Gemini Model", [
-                "gemini-2.0-flash", "gemini-2.0-flash-lite",
-                "gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.5-pro-exp-03-25",
-            ]),
-            ("ollama", "Ollama Model", []),
-        ]):
+        for i, (provider, label, defaults) in enumerate(
+            [
+                (
+                    "openai",
+                    "OpenAI Model",
+                    [
+                        "gpt-4o-mini",
+                        "gpt-4o",
+                        "gpt-4-turbo",
+                        "gpt-3.5-turbo",
+                        "o1-mini",
+                        "o3-mini",
+                    ],
+                ),
+                (
+                    "nvidia",
+                    "NVIDIA Model",
+                    [
+                        "meta/llama-3.1-70b-instruct",
+                        "meta/llama-3.1-8b-instruct",
+                        "meta/llama-3.3-70b-instruct",
+                        "nvidia/llama-3.1-nemotron-70b-instruct",
+                        "mistralai/mixtral-8x22b-instruct-v0.1",
+                        "deepseek-ai/deepseek-r1",
+                    ],
+                ),
+                (
+                    "gemini",
+                    "Gemini Model",
+                    [
+                        "gemini-2.0-flash",
+                        "gemini-2.0-flash-lite",
+                        "gemini-1.5-flash",
+                        "gemini-1.5-pro",
+                        "gemini-2.5-pro-exp-03-25",
+                    ],
+                ),
+                ("ollama", "Ollama Model", []),
+            ]
+        ):
             _section(f, label, i * 3)
             var = tk.StringVar(value=self.config.data["models"].get(provider, ""))
             self.model_vars[provider] = var
-            combo = ttk.Combobox(f, textvariable=var, values=defaults, width=42, font=F_UI)
-            combo.grid(row=i * 3 + 1, column=0, columnspan=2, sticky="ew", padx=16, pady=4)
+            combo = ttk.Combobox(
+                f, textvariable=var, values=defaults, width=42, font=F_UI
+            )
+            combo.grid(
+                row=i * 3 + 1, column=0, columnspan=2, sticky="ew", padx=16, pady=4
+            )
             self.model_combos[provider] = combo
 
             if provider == "ollama":
-                tk.Button(f, text="Refresh from Ollama", fg=TEXT, bg=SURFACE,
-                          activebackground=BORDER, relief="flat", cursor="hand2",
-                          font=F_SMALL, padx=10, pady=4,
-                          command=self._refresh_ollama_models
-                          ).grid(row=i * 3 + 2, column=0, sticky="w", padx=16, pady=2)
+                tk.Button(
+                    f,
+                    text="Refresh from Ollama",
+                    fg=TEXT,
+                    bg=SURFACE,
+                    activebackground=BORDER,
+                    relief="flat",
+                    cursor="hand2",
+                    font=F_SMALL,
+                    padx=10,
+                    pady=4,
+                    command=self._refresh_ollama_models,
+                ).grid(row=i * 3 + 2, column=0, sticky="w", padx=16, pady=2)
 
     # ── Prompts tab ───────────────────────────────────────────────────────────
 
@@ -227,8 +332,9 @@ class SettingsDialog(tk.Toplevel):
         left.grid(row=0, column=0, sticky="nsew", padx=(14, 6), pady=14)
         left.rowconfigure(1, weight=1)
 
-        tk.Label(left, text="Saved Prompts", fg=ACCENT, bg=BG,
-                 font=F_BOLD).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 6))
+        tk.Label(left, text="Saved Prompts", fg=ACCENT, bg=BG, font=F_BOLD).grid(
+            row=0, column=0, columnspan=2, sticky="w", pady=(0, 6)
+        )
 
         list_frame = tk.Frame(left, bg=SURFACE)
         list_frame.grid(row=1, column=0, columnspan=2, sticky="nsew")
@@ -239,12 +345,19 @@ class SettingsDialog(tk.Toplevel):
         sb.grid(row=0, column=1, sticky="ns")
 
         self.prompt_list = tk.Listbox(
-            list_frame, bg=SURFACE, fg=TEXT,
-            selectbackground=ACCENT, selectforeground="#000",
-            relief="flat", font=F_UI, activestyle="none",
-            cursor="hand2", width=22,
+            list_frame,
+            bg=SURFACE,
+            fg=TEXT,
+            selectbackground=ACCENT,
+            selectforeground="#000",
+            relief="flat",
+            font=F_UI,
+            activestyle="none",
+            cursor="hand2",
+            width=22,
             yscrollcommand=sb.set,
-            highlightthickness=0, borderwidth=0,
+            highlightthickness=0,
+            borderwidth=0,
         )
         self.prompt_list.grid(row=0, column=0, sticky="nsew")
         sb.config(command=self.prompt_list.yview)
@@ -254,20 +367,47 @@ class SettingsDialog(tk.Toplevel):
         btn_row = tk.Frame(left, bg=BG)
         btn_row.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(6, 0))
 
-        tk.Button(btn_row, text="New", fg=TEXT, bg=SURFACE,
-                  activebackground=BORDER, relief="flat", cursor="hand2",
-                  font=F_SMALL, padx=8, pady=4,
-                  command=self._new_prompt).pack(side="left", padx=(0, 4))
+        tk.Button(
+            btn_row,
+            text="New",
+            fg=TEXT,
+            bg=SURFACE,
+            activebackground=BORDER,
+            relief="flat",
+            cursor="hand2",
+            font=F_SMALL,
+            padx=8,
+            pady=4,
+            command=self._new_prompt,
+        ).pack(side="left", padx=(0, 4))
 
-        tk.Button(btn_row, text="Duplicate", fg=TEXT, bg=SURFACE,
-                  activebackground=BORDER, relief="flat", cursor="hand2",
-                  font=F_SMALL, padx=8, pady=4,
-                  command=self._duplicate_prompt).pack(side="left", padx=4)
+        tk.Button(
+            btn_row,
+            text="Duplicate",
+            fg=TEXT,
+            bg=SURFACE,
+            activebackground=BORDER,
+            relief="flat",
+            cursor="hand2",
+            font=F_SMALL,
+            padx=8,
+            pady=4,
+            command=self._duplicate_prompt,
+        ).pack(side="left", padx=4)
 
-        self.del_btn = tk.Button(btn_row, text="Delete", fg=ERROR, bg=SURFACE,
-                                 activebackground=BORDER, relief="flat", cursor="hand2",
-                                 font=F_SMALL, padx=8, pady=4,
-                                 command=self._delete_prompt)
+        self.del_btn = tk.Button(
+            btn_row,
+            text="Delete",
+            fg=ERROR,
+            bg=SURFACE,
+            activebackground=BORDER,
+            relief="flat",
+            cursor="hand2",
+            font=F_SMALL,
+            padx=8,
+            pady=4,
+            command=self._delete_prompt,
+        )
         self.del_btn.pack(side="left", padx=4)
 
         # ---- Right: editor ----
@@ -276,44 +416,81 @@ class SettingsDialog(tk.Toplevel):
         right.columnconfigure(0, weight=1)
         right.rowconfigure(3, weight=1)
 
-        tk.Label(right, text="Prompt Name", fg=MUTED, bg=BG,
-                 font=F_SMALL).grid(row=0, column=0, sticky="w", pady=(0, 2))
+        tk.Label(right, text="Prompt Name", fg=MUTED, bg=BG, font=F_SMALL).grid(
+            row=0, column=0, sticky="w", pady=(0, 2)
+        )
 
         self.prompt_name_var = tk.StringVar()
         self.prompt_name_entry = _entry(right)
         self.prompt_name_entry.config(textvariable=self.prompt_name_var, width=36)
         self.prompt_name_entry.grid(row=1, column=0, sticky="ew", pady=(0, 10))
 
-        tk.Label(right, text="Prompt Text", fg=MUTED, bg=BG,
-                 font=F_SMALL).grid(row=2, column=0, sticky="w", pady=(0, 2))
+        tk.Label(right, text="Prompt Text", fg=MUTED, bg=BG, font=F_SMALL).grid(
+            row=2, column=0, sticky="w", pady=(0, 2)
+        )
 
         self.prompt_body = tk.Text(
-            right, bg=SURFACE, fg=TEXT, insertbackground=TEXT,
-            relief="flat", highlightthickness=1,
-            highlightbackground=BORDER, highlightcolor=ACCENT,
-            font=F_MONO, wrap="word",
+            right,
+            bg=SURFACE,
+            fg=TEXT,
+            insertbackground=TEXT,
+            relief="flat",
+            highlightthickness=1,
+            highlightbackground=BORDER,
+            highlightcolor=ACCENT,
+            font=F_MONO,
+            wrap="word",
         )
         self.prompt_body.grid(row=3, column=0, sticky="nsew")
 
         save_row = tk.Frame(right, bg=BG)
         save_row.grid(row=4, column=0, sticky="ew", pady=(8, 0))
 
-        tk.Button(save_row, text="Save Prompt", bg=ACCENT, fg="#000",
-                  activebackground="#74c7ec", relief="flat", cursor="hand2",
-                  font=F_BOLD, padx=14, pady=5,
-                  command=self._save_current_prompt).pack(side="left")
+        tk.Button(
+            save_row,
+            text="Save Prompt",
+            bg=ACCENT,
+            fg="#000",
+            activebackground="#74c7ec",
+            relief="flat",
+            cursor="hand2",
+            font=F_BOLD,
+            padx=14,
+            pady=5,
+            command=self._save_current_prompt,
+        ).pack(side="left")
 
-        tk.Button(save_row, text="Set as Default", fg=TEXT, bg=SURFACE,
-                  activebackground=BORDER, relief="flat", cursor="hand2",
-                  font=F_SMALL, padx=10, pady=5,
-                  command=self._set_default_prompt).pack(side="left", padx=8)
+        tk.Button(
+            save_row,
+            text="Set as Default",
+            fg=TEXT,
+            bg=SURFACE,
+            activebackground=BORDER,
+            relief="flat",
+            cursor="hand2",
+            font=F_SMALL,
+            padx=10,
+            pady=5,
+            command=self._set_default_prompt,
+        ).pack(side="left", padx=8)
 
-        tk.Button(save_row, text="Reset All to Built-in", fg=MUTED, bg=BG,
-                  activebackground=SURFACE, relief="flat", cursor="hand2",
-                  font=F_SMALL, padx=8, pady=5,
-                  command=self._reset_prompts).pack(side="right")
+        tk.Button(
+            save_row,
+            text="Reset All to Built-in",
+            fg=MUTED,
+            bg=BG,
+            activebackground=SURFACE,
+            relief="flat",
+            cursor="hand2",
+            font=F_SMALL,
+            padx=8,
+            pady=5,
+            command=self._reset_prompts,
+        ).pack(side="right")
 
-        self.prompt_save_lbl = tk.Label(save_row, text="", fg=MUTED, bg=BG, font=F_SMALL)
+        self.prompt_save_lbl = tk.Label(
+            save_row, text="", fg=MUTED, bg=BG, font=F_SMALL
+        )
         self.prompt_save_lbl.pack(side="left", padx=8)
 
         # Default badge shown next to active prompt
@@ -385,7 +562,9 @@ class SettingsDialog(tk.Toplevel):
         self._default_name = self._prompts[idx]["name"]
         self._refresh_prompt_list()
         self.prompt_list.selection_set(idx)
-        self.prompt_save_lbl.configure(text=f"Default set to '{self._default_name}'", fg=SUCCESS)
+        self.prompt_save_lbl.configure(
+            text=f"Default set to '{self._default_name}'", fg=SUCCESS
+        )
         self.after(2000, lambda: self.prompt_save_lbl.configure(text=""))
 
     def _new_prompt(self):
@@ -427,7 +606,9 @@ class SettingsDialog(tk.Toplevel):
         if not sel:
             return
         if len(self._prompts) <= 1:
-            messagebox.showwarning("Cannot Delete", "You must keep at least one prompt.", parent=self)
+            messagebox.showwarning(
+                "Cannot Delete", "You must keep at least one prompt.", parent=self
+            )
             return
         idx = sel[0]
         name = self._prompts[idx]["name"]
@@ -462,27 +643,45 @@ class SettingsDialog(tk.Toplevel):
         f.columnconfigure(1, weight=1)
 
         _section(f, "Code Detection", 0)
-        tk.Label(f, text="Min Code Length (chars)", fg=TEXT, bg=BG,
-                 font=F_UI).grid(row=1, column=0, sticky="w", padx=16, pady=6)
+        tk.Label(f, text="Min Code Length (chars)", fg=TEXT, bg=BG, font=F_UI).grid(
+            row=1, column=0, sticky="w", padx=16, pady=6
+        )
         self.min_len = _entry(f, width=10)
         self.min_len.insert(0, str(self.config.data.get("min_code_length", 20)))
         self.min_len.grid(row=1, column=1, sticky="w", padx=(0, 14), pady=6)
 
-        tk.Label(f, text="Lower = triggers on shorter snippets  (recommended: 20–50)",
-                 fg=MUTED, bg=BG, font=F_SMALL).grid(
-            row=2, column=0, columnspan=2, sticky="w", padx=16)
+        tk.Label(
+            f,
+            text="Lower = triggers on shorter snippets  (recommended: 20–50)",
+            fg=MUTED,
+            bg=BG,
+            font=F_SMALL,
+        ).grid(row=2, column=0, columnspan=2, sticky="w", padx=16)
 
         # Audio output section
         _section(f, "Audio Output", 3)
-        self.enable_audio_var = tk.BooleanVar(value=self.config.data.get("enable_audio", False))
-        tk.Checkbutton(f, text="Enable audio output for explanations",
-                       variable=self.enable_audio_var,
-                       bg=BG, fg=TEXT, activebackground=BG, activeforeground=ACCENT,
-                       selectcolor=SURFACE, font=F_UI,
-                       cursor="hand2").grid(row=4, column=0, columnspan=2, sticky="w", padx=16, pady=4)
-        tk.Label(f, text="Text-to-speech will speak the explanation when complete",
-                 fg=MUTED, bg=BG, font=F_SMALL).grid(
-            row=5, column=0, columnspan=2, sticky="w", padx=16)
+        self.enable_audio_var = tk.BooleanVar(
+            value=self.config.data.get("enable_audio", False)
+        )
+        tk.Checkbutton(
+            f,
+            text="Enable audio output for explanations",
+            variable=self.enable_audio_var,
+            bg=BG,
+            fg=TEXT,
+            activebackground=BG,
+            activeforeground=ACCENT,
+            selectcolor=SURFACE,
+            font=F_UI,
+            cursor="hand2",
+        ).grid(row=4, column=0, columnspan=2, sticky="w", padx=16, pady=4)
+        tk.Label(
+            f,
+            text="Text-to-speech will speak the explanation when complete",
+            fg=MUTED,
+            bg=BG,
+            font=F_SMALL,
+        ).grid(row=5, column=0, columnspan=2, sticky="w", padx=16)
 
     # ── Shared helpers ────────────────────────────────────────────────────────
 
@@ -499,8 +698,9 @@ class SettingsDialog(tk.Toplevel):
                 text = "Connection OK ✓" if ok else f"Failed: {msg}"
                 self.after(0, lambda: self.test_result.configure(text=text, fg=color))
             except Exception as e:
-                self.after(0, lambda: self.test_result.configure(
-                    text=f"Error: {e}", fg=ERROR))
+                self.after(
+                    0, lambda: self.test_result.configure(text=f"Error: {e}", fg=ERROR)
+                )
             finally:
                 self.after(0, lambda: self.test_btn.configure(state="normal"))
 
@@ -514,14 +714,16 @@ class SettingsDialog(tk.Toplevel):
             if not self.model_vars["ollama"].get():
                 self.model_vars["ollama"].set(models[0])
         else:
-            messagebox.showwarning("Ollama", "No models found. Is Ollama running?", parent=self)
+            messagebox.showwarning(
+                "Ollama", "No models found. Is Ollama running?", parent=self
+            )
 
     def _apply_to_config(self):
         self.config.data["provider"] = self.provider_var.get()
         self.config.data["api_keys"]["openai"] = self.openai_key.get().strip()
         self.config.data["api_keys"]["nvidia"] = self.nvidia_key.get().strip()
         self.config.data["api_keys"]["gemini"] = self.gemini_key.get().strip()
-        self.config.data["ollama_host"]        = self.ollama_host.get().strip()
+        self.config.data["ollama_host"] = self.ollama_host.get().strip()
         for p, var in self.model_vars.items():
             self.config.data["models"][p] = var.get().strip()
         try:
@@ -530,7 +732,7 @@ class SettingsDialog(tk.Toplevel):
             pass
         self.config.data["enable_audio"] = self.enable_audio_var.get()
         # Prompts
-        self.config.data["prompts"]       = self._prompts
+        self.config.data["prompts"] = self._prompts
         self.config.data["active_prompt"] = self._default_name
 
     def _save(self):

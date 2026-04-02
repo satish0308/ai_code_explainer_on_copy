@@ -3,10 +3,11 @@ AI provider integrations: OpenAI, NVIDIA NIM, Gemini, Ollama.
 All providers implement a streaming `explain(code, system_prompt)` generator.
 """
 
-import requests
 import json
 from abc import ABC, abstractmethod
 from typing import Generator, Optional
+
+import requests
 
 
 class AIProvider(ABC):
@@ -30,8 +31,11 @@ class AIProvider(ABC):
 # OpenAI
 # ---------------------------------------------------------------------------
 
+
 class OpenAIProvider(AIProvider):
-    def __init__(self, api_key: str, model: str, base_url: str = "https://api.openai.com/v1"):
+    def __init__(
+        self, api_key: str, model: str, base_url: str = "https://api.openai.com/v1"
+    ):
         self.api_key = api_key
         self.model = model
         self.base_url = base_url.rstrip("/")
@@ -85,7 +89,13 @@ class OpenAIProvider(AIProvider):
             resp.raise_for_status()
             models = [m["id"] for m in resp.json().get("data", [])]
             # Filter to chat models
-            chat_models = [m for m in models if any(x in m for x in ["gpt", "o1", "o3", "llama", "mistral", "deepseek"])]
+            chat_models = [
+                m
+                for m in models
+                if any(
+                    x in m for x in ["gpt", "o1", "o3", "llama", "mistral", "deepseek"]
+                )
+            ]
             return sorted(chat_models) or models[:20]
         except Exception:
             return ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"]
@@ -112,6 +122,7 @@ class OpenAIProvider(AIProvider):
 # ---------------------------------------------------------------------------
 # NVIDIA NIM (OpenAI-compatible)
 # ---------------------------------------------------------------------------
+
 
 class NvidiaProvider(OpenAIProvider):
     DEFAULT_BASE_URL = "https://integrate.api.nvidia.com/v1"
@@ -143,6 +154,7 @@ class NvidiaProvider(OpenAIProvider):
 # ---------------------------------------------------------------------------
 # Google Gemini
 # ---------------------------------------------------------------------------
+
 
 class GeminiProvider(AIProvider):
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
@@ -222,6 +234,7 @@ class GeminiProvider(AIProvider):
 # Ollama (local)
 # ---------------------------------------------------------------------------
 
+
 class OllamaProvider(AIProvider):
     def __init__(self, host: str, model: str):
         self.host = host.rstrip("/")
@@ -270,10 +283,20 @@ class OllamaProvider(AIProvider):
             resp.raise_for_status()
             models = resp.json().get("models", [])
             if not models:
-                return False, "Ollama is running but no models are installed. Run: ollama pull llama3.2"
+                return (
+                    False,
+                    "Ollama is running but no models are installed. Run: ollama pull llama3.2",
+                )
             names = [m["name"] for m in models]
-            if self.model and self.model not in names and f"{self.model}:latest" not in names:
-                return False, f"Model '{self.model}' not found. Available: {', '.join(names[:5])}"
+            if (
+                self.model
+                and self.model not in names
+                and f"{self.model}:latest" not in names
+            ):
+                return (
+                    False,
+                    f"Model '{self.model}' not found. Available: {', '.join(names[:5])}",
+                )
             return True, ""
         except requests.ConnectionError:
             return False, f"Cannot connect to Ollama at {self.host}. Is Ollama running?"
@@ -284,6 +307,7 @@ class OllamaProvider(AIProvider):
 # ---------------------------------------------------------------------------
 # Factory
 # ---------------------------------------------------------------------------
+
 
 def build_provider(config) -> AIProvider:
     provider = config.provider
@@ -296,7 +320,9 @@ def build_provider(config) -> AIProvider:
         return NvidiaProvider(
             api_key=config.data["api_keys"]["nvidia"],
             model=config.data["models"]["nvidia"],
-            base_url=config.data.get("nvidia_base_url", NvidiaProvider.DEFAULT_BASE_URL),
+            base_url=config.data.get(
+                "nvidia_base_url", NvidiaProvider.DEFAULT_BASE_URL
+            ),
         )
     elif provider == "gemini":
         return GeminiProvider(

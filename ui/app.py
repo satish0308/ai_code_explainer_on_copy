@@ -3,40 +3,40 @@ Main application — tabbed control panel.
 Tabs: Monitor | Test LLM | Logs
 """
 
-import tkinter as tk
-from tkinter import ttk, scrolledtext
-import threading
-import queue
 import datetime
-import sys
 import os
+import queue
+import sys
+import threading
+import tkinter as tk
+from tkinter import scrolledtext, ttk
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import Config
 from ai_providers import build_provider
 from clipboard_monitor import ClipboardMonitor
+from config import Config
 from ui.popup import ExplanationPopup
 from ui.settings import SettingsDialog
 
 # ── Palette ──────────────────────────────────────────────────────────────────
-BG       = "#1e1e2e"
-PANEL    = "#181825"
-SURFACE  = "#313244"
-TEXT     = "#cdd6f4"
-MUTED    = "#6c7086"
-ACCENT   = "#89b4fa"
-SUCCESS  = "#a6e3a1"
-ERROR    = "#f38ba8"
-WARN     = "#fab387"
-CODE_BG  = "#11111b"
-BORDER   = "#45475a"
+BG = "#1e1e2e"
+PANEL = "#181825"
+SURFACE = "#313244"
+TEXT = "#cdd6f4"
+MUTED = "#6c7086"
+ACCENT = "#89b4fa"
+SUCCESS = "#a6e3a1"
+ERROR = "#f38ba8"
+WARN = "#fab387"
+CODE_BG = "#11111b"
+BORDER = "#45475a"
 
 PROVIDER_COLORS = {
-    "openai":  "#74c7ec",
-    "nvidia":  "#a6e3a1",
-    "gemini":  "#f9e2af",
-    "ollama":  "#cba6f7",
+    "openai": "#74c7ec",
+    "nvidia": "#a6e3a1",
+    "gemini": "#f9e2af",
+    "ollama": "#cba6f7",
 }
 
 # Font definitions - cross-platform compatible
@@ -46,32 +46,33 @@ import platform
 SYSTEM = platform.system()
 if SYSTEM == "Darwin":  # macOS
     F_HEADER = ("SF Pro Display", 13, "bold")
-    F_UI     = ("SF Pro Display", 11)
-    F_SMALL  = ("SF Pro Display", 10)
-    F_MONO   = ("Menlo", 10)
-    F_LOG    = ("Menlo", 9)
+    F_UI = ("SF Pro Display", 11)
+    F_SMALL = ("SF Pro Display", 10)
+    F_MONO = ("Menlo", 10)
+    F_LOG = ("Menlo", 9)
 elif SYSTEM == "Windows":
     F_HEADER = ("Segoe UI", 13, "bold")
-    F_UI     = ("Segoe UI", 11)
-    F_SMALL  = ("Segoe UI", 10)
-    F_MONO   = ("Consolas", 10)
-    F_LOG    = ("Consolas", 9)
+    F_UI = ("Segoe UI", 11)
+    F_SMALL = ("Segoe UI", 10)
+    F_MONO = ("Consolas", 10)
+    F_LOG = ("Consolas", 9)
 else:  # Linux
     F_HEADER = ("DejaVu Sans", 11, "bold")
-    F_UI     = ("DejaVu Sans", 10)
-    F_SMALL  = ("DejaVu Sans", 9)
-    F_MONO   = ("DejaVu Sans Mono", 9)
-    F_LOG    = ("DejaVu Sans Mono", 8)
+    F_UI = ("DejaVu Sans", 10)
+    F_SMALL = ("DejaVu Sans", 9)
+    F_MONO = ("DejaVu Sans Mono", 9)
+    F_LOG = ("DejaVu Sans Mono", 8)
 
 LOG_COLORS = {
-    "INFO":  ACCENT,
+    "INFO": ACCENT,
     "DEBUG": MUTED,
-    "WARN":  WARN,
+    "WARN": WARN,
     "ERROR": ERROR,
 }
 
 
 # ── App ───────────────────────────────────────────────────────────────────────
+
 
 class App(tk.Tk):
     def __init__(self):
@@ -106,6 +107,7 @@ class App(tk.Tk):
         if SYSTEM == "Windows":
             try:
                 from ctypes import windll
+
                 windll.shcore.SetProcessDpiAwareness(1)
             except Exception:
                 pass
@@ -113,13 +115,21 @@ class App(tk.Tk):
     def _apply_ttk_style(self):
         s = ttk.Style(self)
         s.theme_use("clam")
-        s.configure("TNotebook",        background=PANEL, borderwidth=0, tabmargins=0)
-        s.configure("TNotebook.Tab",    background=PANEL, foreground=MUTED,
-                    padding=[18, 8], font=F_UI, borderwidth=0)
-        s.map("TNotebook.Tab",
-              background=[("selected", BG)],
-              foreground=[("selected", ACCENT)])
-        s.configure("TFrame",   background=BG)
+        s.configure("TNotebook", background=PANEL, borderwidth=0, tabmargins=0)
+        s.configure(
+            "TNotebook.Tab",
+            background=PANEL,
+            foreground=MUTED,
+            padding=[18, 8],
+            font=F_UI,
+            borderwidth=0,
+        )
+        s.map(
+            "TNotebook.Tab",
+            background=[("selected", BG)],
+            foreground=[("selected", ACCENT)],
+        )
+        s.configure("TFrame", background=BG)
         s.configure("TSeparator", background=BORDER)
 
     # ── Top header ────────────────────────────────────────────────────────────
@@ -130,25 +140,46 @@ class App(tk.Tk):
         hdr.grid(row=0, column=0, sticky="ew")
         hdr.columnconfigure(1, weight=1)
 
-        tk.Label(hdr, text="</> Auto Code Explainer", fg=TEXT, bg=PANEL,
-                 font=F_HEADER, padx=16).grid(row=0, column=0, sticky="w")
+        tk.Label(
+            hdr,
+            text="</> Auto Code Explainer",
+            fg=TEXT,
+            bg=PANEL,
+            font=F_HEADER,
+            padx=16,
+        ).grid(row=0, column=0, sticky="w")
 
-        self.provider_badge = tk.Label(hdr, text="", fg=ACCENT, bg=SURFACE,
-                                       font=F_SMALL, padx=10, pady=3)
+        self.provider_badge = tk.Label(
+            hdr, text="", fg=ACCENT, bg=SURFACE, font=F_SMALL, padx=10, pady=3
+        )
         self.provider_badge.grid(row=0, column=1, sticky="w", padx=8)
 
         # Toggle
         self.toggle_var = tk.BooleanVar(value=self.config_obj.enabled)
         self.toggle_btn = tk.Button(
-            hdr, text="OFF", width=7, relief="flat", cursor="hand2",
-            font=("DejaVu Sans", 10, "bold"), command=self._toggle,
+            hdr,
+            text="OFF",
+            width=7,
+            relief="flat",
+            cursor="hand2",
+            font=("DejaVu Sans", 10, "bold"),
+            command=self._toggle,
         )
         self.toggle_btn.grid(row=0, column=2, padx=6)
 
-        tk.Button(hdr, text="Settings", fg=MUTED, bg=SURFACE,
-                  activebackground=BORDER, relief="flat", cursor="hand2",
-                  font=F_SMALL, padx=12, pady=4,
-                  command=self._open_settings).grid(row=0, column=3, padx=(0, 12))
+        tk.Button(
+            hdr,
+            text="Settings",
+            fg=MUTED,
+            bg=SURFACE,
+            activebackground=BORDER,
+            relief="flat",
+            cursor="hand2",
+            font=F_SMALL,
+            padx=12,
+            pady=4,
+            command=self._open_settings,
+        ).grid(row=0, column=3, padx=(0, 12))
 
         # Notebook (tabs)
         self.nb = ttk.Notebook(self)
@@ -163,8 +194,15 @@ class App(tk.Tk):
         bar.grid(row=2, column=0, sticky="ew")
         bar.grid_propagate(False)
         self.status_var = tk.StringVar(value="Ready")
-        tk.Label(bar, textvariable=self.status_var, fg=MUTED, bg=PANEL,
-                 font=F_SMALL, anchor="w", padx=12).pack(side="left", fill="y")
+        tk.Label(
+            bar,
+            textvariable=self.status_var,
+            fg=MUTED,
+            bg=PANEL,
+            font=F_SMALL,
+            anchor="w",
+            padx=12,
+        ).pack(side="left", fill="y")
 
         # Init labels
         self._update_toggle_btn()
@@ -183,21 +221,31 @@ class App(tk.Tk):
         strip.grid(row=0, column=0, sticky="ew", padx=16, pady=(14, 0))
         strip.columnconfigure(1, weight=1)
 
-        self.monitor_dot = tk.Label(strip, text="●", fg=SUCCESS, bg=SURFACE,
-                                    font=("DejaVu Sans", 14), padx=10)
+        self.monitor_dot = tk.Label(
+            strip, text="●", fg=SUCCESS, bg=SURFACE, font=("DejaVu Sans", 14), padx=10
+        )
         self.monitor_dot.grid(row=0, column=0)
 
-        self.monitor_status_lbl = tk.Label(strip, text="", fg=TEXT, bg=SURFACE,
-                                           font=F_UI, anchor="w")
+        self.monitor_status_lbl = tk.Label(
+            strip, text="", fg=TEXT, bg=SURFACE, font=F_UI, anchor="w"
+        )
         self.monitor_status_lbl.grid(row=0, column=1, sticky="ew")
 
-        self.proc_lbl = tk.Label(strip, text="", fg=WARN, bg=SURFACE,
-                                 font=F_SMALL, padx=10)
+        self.proc_lbl = tk.Label(
+            strip, text="", fg=WARN, bg=SURFACE, font=F_SMALL, padx=10
+        )
         self.proc_lbl.grid(row=0, column=2)
 
         # Clipboard debug line
-        self.clip_lbl = tk.Label(f, text="Last clipboard read: —", fg=MUTED,
-                                 bg=BG, font=F_LOG, anchor="w", padx=16)
+        self.clip_lbl = tk.Label(
+            f,
+            text="Last clipboard read: —",
+            fg=MUTED,
+            bg=BG,
+            font=F_LOG,
+            anchor="w",
+            padx=16,
+        )
         self.clip_lbl.grid(row=1, column=0, sticky="ew", pady=(8, 0))
 
         # History
@@ -205,11 +253,24 @@ class App(tk.Tk):
         hist_hdr.grid(row=1, column=0, sticky="ew", pady=(20, 0))
         hist_hdr.columnconfigure(0, weight=1)
 
-        tk.Label(hist_hdr, text="Recent Snippets  (double-click to re-explain)",
-                 fg=MUTED, bg=BG, font=F_SMALL).grid(row=0, column=0, sticky="w")
-        tk.Button(hist_hdr, text="Clear", fg=MUTED, bg=BG,
-                  activebackground=SURFACE, relief="flat", cursor="hand2",
-                  font=F_SMALL, command=self._clear_history).grid(row=0, column=1)
+        tk.Label(
+            hist_hdr,
+            text="Recent Snippets  (double-click to re-explain)",
+            fg=MUTED,
+            bg=BG,
+            font=F_SMALL,
+        ).grid(row=0, column=0, sticky="w")
+        tk.Button(
+            hist_hdr,
+            text="Clear",
+            fg=MUTED,
+            bg=BG,
+            activebackground=SURFACE,
+            relief="flat",
+            cursor="hand2",
+            font=F_SMALL,
+            command=self._clear_history,
+        ).grid(row=0, column=1)
 
         list_frame = tk.Frame(f, bg=BG, padx=16)
         list_frame.grid(row=2, column=0, sticky="nsew")
@@ -220,11 +281,18 @@ class App(tk.Tk):
         sb.grid(row=0, column=1, sticky="ns")
 
         self.hist_list = tk.Listbox(
-            list_frame, bg=SURFACE, fg=TEXT,
-            selectbackground=ACCENT, selectforeground="#000",
-            relief="flat", font=F_MONO, activestyle="none",
-            cursor="hand2", yscrollcommand=sb.set,
-            borderwidth=0, highlightthickness=0,
+            list_frame,
+            bg=SURFACE,
+            fg=TEXT,
+            selectbackground=ACCENT,
+            selectforeground="#000",
+            relief="flat",
+            font=F_MONO,
+            activestyle="none",
+            cursor="hand2",
+            yscrollcommand=sb.set,
+            borderwidth=0,
+            highlightthickness=0,
         )
         self.hist_list.grid(row=0, column=0, sticky="nsew", pady=(0, 12))
         sb.config(command=self.hist_list.yview)
@@ -240,15 +308,22 @@ class App(tk.Tk):
         f.rowconfigure(3, weight=3)
 
         # Input area
-        tk.Label(f, text="Paste code to test:", fg=MUTED, bg=BG,
-                 font=F_SMALL, anchor="w").grid(row=0, column=0, sticky="ew",
-                                                 padx=16, pady=(14, 4))
+        tk.Label(
+            f, text="Paste code to test:", fg=MUTED, bg=BG, font=F_SMALL, anchor="w"
+        ).grid(row=0, column=0, sticky="ew", padx=16, pady=(14, 4))
 
         self.test_input = scrolledtext.ScrolledText(
-            f, height=10, bg=CODE_BG, fg=SUCCESS,
-            insertbackground=TEXT, relief="flat",
-            highlightthickness=1, highlightbackground=BORDER,
-            highlightcolor=ACCENT, font=F_MONO, wrap="none",
+            f,
+            height=10,
+            bg=CODE_BG,
+            fg=SUCCESS,
+            insertbackground=TEXT,
+            relief="flat",
+            highlightthickness=1,
+            highlightbackground=BORDER,
+            highlightcolor=ACCENT,
+            font=F_MONO,
+            wrap="none",
         )
         self.test_input.grid(row=1, column=0, sticky="nsew", padx=16, pady=(0, 8))
 
@@ -258,21 +333,32 @@ class App(tk.Tk):
         ctrl.columnconfigure(1, weight=1)
 
         # Prompt selector for test tab
-        tk.Label(ctrl, text="Prompt:", fg=MUTED, bg=BG,
-                 font=F_SMALL).grid(row=0, column=0, padx=(0, 6))
+        tk.Label(ctrl, text="Prompt:", fg=MUTED, bg=BG, font=F_SMALL).grid(
+            row=0, column=0, padx=(0, 6)
+        )
 
         self.test_prompt_var = tk.StringVar(value=self.config_obj.active_prompt)
         self.test_prompt_combo = ttk.Combobox(
-            ctrl, textvariable=self.test_prompt_var,
+            ctrl,
+            textvariable=self.test_prompt_var,
             values=self.config_obj.prompt_names,
-            state="readonly", font=F_SMALL, width=26,
+            state="readonly",
+            font=F_SMALL,
+            width=26,
         )
         self.test_prompt_combo.grid(row=0, column=1, sticky="ew", padx=(0, 10))
 
         self.explain_btn = tk.Button(
-            ctrl, text="Explain Code", bg=ACCENT, fg="#000",
-            activebackground="#74c7ec", relief="flat", cursor="hand2",
-            font=("DejaVu Sans", 11, "bold"), padx=16, pady=6,
+            ctrl,
+            text="Explain Code",
+            bg=ACCENT,
+            fg="#000",
+            activebackground="#74c7ec",
+            relief="flat",
+            cursor="hand2",
+            font=("DejaVu Sans", 11, "bold"),
+            padx=16,
+            pady=6,
             command=self._test_explain,
         )
         self.explain_btn.grid(row=0, column=2)
@@ -280,35 +366,76 @@ class App(tk.Tk):
         self.test_status_lbl = tk.Label(ctrl, text="", fg=MUTED, bg=BG, font=F_SMALL)
         self.test_status_lbl.grid(row=0, column=3, sticky="w", padx=10)
 
-        tk.Button(ctrl, text="Clear", fg=MUTED, bg=SURFACE,
-                  activebackground=BORDER, relief="flat", cursor="hand2",
-                  font=F_SMALL, padx=10, pady=5,
-                  command=self._clear_test).grid(row=0, column=4)
+        tk.Button(
+            ctrl,
+            text="Clear",
+            fg=MUTED,
+            bg=SURFACE,
+            activebackground=BORDER,
+            relief="flat",
+            cursor="hand2",
+            font=F_SMALL,
+            padx=10,
+            pady=5,
+            command=self._clear_test,
+        ).grid(row=0, column=4)
 
         # Zoom controls for explanation text
-        tk.Frame(ctrl, bg=SURFACE, width=1).grid(row=0, column=5, sticky="ns", padx=(10, 4))
-        tk.Button(ctrl, text="-", fg=MUTED, bg=SURFACE,
-                  activeforeground=TEXT, activebackground=BORDER, relief="flat",
-                  cursor="hand2", font=("DejaVu Sans", 10, "bold"), padx=8, pady=2,
-                  command=lambda: self._resize_test_output(-2)).grid(row=0, column=6, padx=(0, 2))
-        self._test_output_size_lbl = tk.Label(ctrl, text="11pt", fg=MUTED, bg=SURFACE,
-                                              font=("DejaVu Sans", 9), width=4)
+        tk.Frame(ctrl, bg=SURFACE, width=1).grid(
+            row=0, column=5, sticky="ns", padx=(10, 4)
+        )
+        tk.Button(
+            ctrl,
+            text="-",
+            fg=MUTED,
+            bg=SURFACE,
+            activeforeground=TEXT,
+            activebackground=BORDER,
+            relief="flat",
+            cursor="hand2",
+            font=("DejaVu Sans", 10, "bold"),
+            padx=8,
+            pady=2,
+            command=lambda: self._resize_test_output(-2),
+        ).grid(row=0, column=6, padx=(0, 2))
+        self._test_output_size_lbl = tk.Label(
+            ctrl, text="11pt", fg=MUTED, bg=SURFACE, font=("DejaVu Sans", 9), width=4
+        )
         self._test_output_size_lbl.grid(row=0, column=7, padx=(0, 2))
-        tk.Button(ctrl, text="+", fg=ACCENT, bg=SURFACE,
-                  activeforeground=TEXT, activebackground=BORDER, relief="flat",
-                  cursor="hand2", font=("DejaVu Sans", 10, "bold"), padx=8, pady=2,
-                  command=lambda: self._resize_test_output(+2)).grid(row=0, column=8)
+        tk.Button(
+            ctrl,
+            text="+",
+            fg=ACCENT,
+            bg=SURFACE,
+            activeforeground=TEXT,
+            activebackground=BORDER,
+            relief="flat",
+            cursor="hand2",
+            font=("DejaVu Sans", 10, "bold"),
+            padx=8,
+            pady=2,
+            command=lambda: self._resize_test_output(+2),
+        ).grid(row=0, column=8)
 
         # Output area
-        tk.Label(f, text="Explanation:", fg=MUTED, bg=BG,
-                 font=F_SMALL, anchor="w").grid(row=3, column=0, sticky="new",
-                                                 padx=16, pady=(4, 2))
+        tk.Label(
+            f, text="Explanation:", fg=MUTED, bg=BG, font=F_SMALL, anchor="w"
+        ).grid(row=3, column=0, sticky="new", padx=16, pady=(4, 2))
 
         self.test_output = scrolledtext.ScrolledText(
-            f, bg=BG, fg=TEXT, insertbackground=TEXT, relief="flat",
-            highlightthickness=1, highlightbackground=BORDER,
-            highlightcolor=ACCENT, font=F_UI, wrap="word",
-            spacing1=2, spacing3=2, state="disabled",
+            f,
+            bg=BG,
+            fg=TEXT,
+            insertbackground=TEXT,
+            relief="flat",
+            highlightthickness=1,
+            highlightbackground=BORDER,
+            highlightcolor=ACCENT,
+            font=F_UI,
+            wrap="word",
+            spacing1=2,
+            spacing3=2,
+            state="disabled",
         )
         self.test_output.grid(row=3, column=0, sticky="nsew", padx=16, pady=(0, 12))
         self.test_output.tag_configure("error", foreground=ERROR)
@@ -336,9 +463,14 @@ class App(tk.Tk):
         log_frame.rowconfigure(0, weight=1)
 
         self.log_box = scrolledtext.ScrolledText(
-            log_frame, bg=PANEL, fg=MUTED,
-            insertbackground=TEXT, relief="flat",
-            font=F_LOG, wrap="word", state="disabled",
+            log_frame,
+            bg=PANEL,
+            fg=MUTED,
+            insertbackground=TEXT,
+            relief="flat",
+            font=F_LOG,
+            wrap="word",
+            state="disabled",
         )
         self.log_box.grid(row=0, column=0, sticky="nsew")
 
@@ -356,29 +488,66 @@ class App(tk.Tk):
         btn_bar = tk.Frame(f, bg=BG, pady=6)
         btn_bar.grid(row=1, column=0, sticky="ew", padx=12)
 
-        tk.Button(btn_bar, text="Clear Logs", fg=MUTED, bg=SURFACE,
-                  activebackground=BORDER, relief="flat", cursor="hand2",
-                  font=F_SMALL, padx=10, pady=4,
-                  command=self._clear_logs).pack(side="left")
+        tk.Button(
+            btn_bar,
+            text="Clear Logs",
+            fg=MUTED,
+            bg=SURFACE,
+            activebackground=BORDER,
+            relief="flat",
+            cursor="hand2",
+            font=F_SMALL,
+            padx=10,
+            pady=4,
+            command=self._clear_logs,
+        ).pack(side="left")
 
         self.autoscroll_var = tk.BooleanVar(value=True)
-        tk.Checkbutton(btn_bar, text="Auto-scroll", variable=self.autoscroll_var,
-                       fg=MUTED, bg=BG, activebackground=BG,
-                       selectcolor=SURFACE, font=F_SMALL).pack(side="left", padx=12)
+        tk.Checkbutton(
+            btn_bar,
+            text="Auto-scroll",
+            variable=self.autoscroll_var,
+            fg=MUTED,
+            bg=BG,
+            activebackground=BG,
+            selectcolor=SURFACE,
+            font=F_SMALL,
+        ).pack(side="left", padx=12)
 
         # Zoom controls for log text
         tk.Frame(btn_bar, bg=SURFACE, width=1).pack(side="left", fill="y", padx=10)
-        tk.Button(btn_bar, text="-", fg=MUTED, bg=SURFACE,
-                  activeforeground=TEXT, activebackground=BORDER, relief="flat",
-                  cursor="hand2", font=("DejaVu Sans", 10, "bold"), padx=8, pady=2,
-                  command=lambda: self._resize_log(-2)).pack(side="left", padx=(10, 2))
-        self._log_size_lbl = tk.Label(btn_bar, text="9pt", fg=MUTED, bg=SURFACE,
-                                      font=("DejaVu Sans", 9), width=4)
+        tk.Button(
+            btn_bar,
+            text="-",
+            fg=MUTED,
+            bg=SURFACE,
+            activeforeground=TEXT,
+            activebackground=BORDER,
+            relief="flat",
+            cursor="hand2",
+            font=("DejaVu Sans", 10, "bold"),
+            padx=8,
+            pady=2,
+            command=lambda: self._resize_log(-2),
+        ).pack(side="left", padx=(10, 2))
+        self._log_size_lbl = tk.Label(
+            btn_bar, text="9pt", fg=MUTED, bg=SURFACE, font=("DejaVu Sans", 9), width=4
+        )
         self._log_size_lbl.pack(side="left", padx=(0, 2))
-        tk.Button(btn_bar, text="+", fg=ACCENT, bg=SURFACE,
-                  activeforeground=TEXT, activebackground=BORDER, relief="flat",
-                  cursor="hand2", font=("DejaVu Sans", 10, "bold"), padx=8, pady=2,
-                  command=lambda: self._resize_log(+2)).pack(side="left", padx=2)
+        tk.Button(
+            btn_bar,
+            text="+",
+            fg=ACCENT,
+            bg=SURFACE,
+            activeforeground=TEXT,
+            activebackground=BORDER,
+            relief="flat",
+            cursor="hand2",
+            font=("DejaVu Sans", 10, "bold"),
+            padx=8,
+            pady=2,
+            command=lambda: self._resize_log(+2),
+        ).pack(side="left", padx=2)
 
     # ── Toggle & labels ───────────────────────────────────────────────────────
 
@@ -394,8 +563,11 @@ class App(tk.Tk):
             self.monitor_dot.configure(fg=SUCCESS if enabled else MUTED)
         if hasattr(self, "monitor_status_lbl"):
             self.monitor_status_lbl.configure(
-                text="Watching clipboard — copy any code to explain it automatically" if enabled
-                else "Monitoring paused — click ON to resume",
+                text=(
+                    "Watching clipboard — copy any code to explain it automatically"
+                    if enabled
+                    else "Monitoring paused — click ON to resume"
+                ),
                 fg=TEXT if enabled else MUTED,
             )
         self.status_var.set("Monitoring active" if enabled else "Monitoring paused")
@@ -475,9 +647,9 @@ class App(tk.Tk):
 
     def _on_log_zoom(self, event):
         """Handle Ctrl+MouseWheel to zoom log text."""
-        if hasattr(event, "num"):          # Linux X11
+        if hasattr(event, "num"):  # Linux X11
             delta = +2 if event.num == 4 else -2
-        else:                              # Windows / WSL
+        else:  # Windows / WSL
             delta = +2 if event.delta > 0 else -2
         new_size = max(8, min(30, self._log_font_size + delta))
         self._log_font_size = new_size
@@ -487,7 +659,9 @@ class App(tk.Tk):
 
     def _on_code_detected(self, code: str):
         if self._processing:
-            self._on_log("DEBUG", "Popup suppressed — already processing another snippet")
+            self._on_log(
+                "DEBUG", "Popup suppressed — already processing another snippet"
+            )
             return
         self.after(0, lambda: self._show_explanation(code))
 
@@ -517,10 +691,12 @@ class App(tk.Tk):
         def make_stream_fn(prompt_text: str):
             def _gen():
                 yield from provider.explain(code, prompt_text)
+
             return _gen()
 
         popup = ExplanationPopup(
-            self, code=code,
+            self,
+            code=code,
             provider_name=self.config_obj.provider,
             model=self.config_obj.current_model,
             make_stream_fn=make_stream_fn,
@@ -581,7 +757,10 @@ class App(tk.Tk):
         def run():
             try:
                 provider = build_provider(self.config_obj)
-                self._on_log("INFO", f"Using {self.config_obj.provider} / {self.config_obj.current_model}")
+                self._on_log(
+                    "INFO",
+                    f"Using {self.config_obj.provider} / {self.config_obj.current_model}",
+                )
                 for chunk in provider.explain(code, prompt_text):
                     self._test_queue.put(("chunk", chunk))
                 self._test_queue.put(("done", None))
@@ -605,7 +784,9 @@ class App(tk.Tk):
                 elif kind == "done":
                     self.test_status_lbl.configure(text="Done ✓", fg=SUCCESS)
                     self.test_output.configure(state="normal")
-                    self.test_output.insert("end", "\n\n─── Complete ───", "done_marker")
+                    self.test_output.insert(
+                        "end", "\n\n─── Complete ───", "done_marker"
+                    )
                     self.test_output.see("end")
                     self.test_output.configure(state="disabled")
                     self.explain_btn.configure(state="normal", text="▶  Explain Code")
@@ -640,9 +821,9 @@ class App(tk.Tk):
 
     def _on_test_output_zoom(self, event):
         """Handle Ctrl+MouseWheel to zoom explanation text in Test LLM tab."""
-        if hasattr(event, "num"):          # Linux X11
+        if hasattr(event, "num"):  # Linux X11
             delta = +2 if event.num == 4 else -2
-        else:                              # Windows / WSL
+        else:  # Windows / WSL
             delta = +2 if event.delta > 0 else -2
         new_size = max(9, min(40, self._test_output_font_size + delta))
         self._test_output_font_size = new_size
@@ -654,7 +835,9 @@ class App(tk.Tk):
     def _open_settings(self):
         def on_save():
             self._monitor.set_enabled(self.config_obj.enabled)
-            self._monitor.set_min_length(self.config_obj.data.get("min_code_length", 20))
+            self._monitor.set_min_length(
+                self.config_obj.data.get("min_code_length", 20)
+            )
             self.toggle_var.set(self.config_obj.enabled)
             self._update_toggle_btn()
             self._update_provider_badge()
@@ -663,7 +846,10 @@ class App(tk.Tk):
             self.test_prompt_combo.configure(values=names)
             if self.test_prompt_var.get() not in names:
                 self.test_prompt_var.set(self.config_obj.active_prompt)
-            self._on_log("INFO", f"Settings saved — provider={self.config_obj.provider} model={self.config_obj.current_model}")
+            self._on_log(
+                "INFO",
+                f"Settings saved — provider={self.config_obj.provider} model={self.config_obj.current_model}",
+            )
 
         SettingsDialog(self, self.config_obj, on_save=on_save)
 
@@ -679,12 +865,20 @@ class App(tk.Tk):
             d.rectangle([8, 8, 56, 56], fill="#89b4fa", outline="#cdd6f4", width=2)
 
             menu = pystray.Menu(
-                pystray.MenuItem("Show", lambda i, item: self.after(0, self.deiconify), default=True),
-                pystray.MenuItem("Toggle ON/OFF", lambda i, item: self.after(0, self._toggle)),
+                pystray.MenuItem(
+                    "Show", lambda i, item: self.after(0, self.deiconify), default=True
+                ),
+                pystray.MenuItem(
+                    "Toggle ON/OFF", lambda i, item: self.after(0, self._toggle)
+                ),
                 pystray.Menu.SEPARATOR,
-                pystray.MenuItem("Quit", lambda i, item: (i.stop(), self.after(0, self.quit))),
+                pystray.MenuItem(
+                    "Quit", lambda i, item: (i.stop(), self.after(0, self.quit))
+                ),
             )
-            self._tray_icon = pystray.Icon("code-explainer", img, "Code Explainer", menu)
+            self._tray_icon = pystray.Icon(
+                "code-explainer", img, "Code Explainer", menu
+            )
             threading.Thread(target=self._tray_icon.run, daemon=True).start()
         except Exception as e:
             pass  # Tray not critical

@@ -6,8 +6,8 @@ Monitors your clipboard. When you copy code (Ctrl+C),
 it automatically explains it using your configured AI provider.
 """
 
-import sys
 import os
+import sys
 
 # Ensure the project root is in the path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -28,6 +28,7 @@ def main():
 def get_app():
     """Get the app instance for testing purposes."""
     from ui.app import App
+
     return App()
 
 

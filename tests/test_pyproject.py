@@ -1,7 +1,9 @@
 """
 Tests to verify pyproject.toml is properly configured.
 """
+
 import os
+
 import toml
 
 

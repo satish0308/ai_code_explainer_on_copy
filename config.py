@@ -104,7 +104,11 @@ class Config:
                     saved = json.load(f)
                 merged = DEFAULT_CONFIG.copy()
                 for k, v in saved.items():
-                    if isinstance(v, dict) and k in merged and isinstance(merged[k], dict):
+                    if (
+                        isinstance(v, dict)
+                        and k in merged
+                        and isinstance(merged[k], dict)
+                    ):
                         merged[k] = {**merged[k], **v}
                     else:
                         merged[k] = v
@@ -116,7 +120,9 @@ class Config:
                 if old:
                     names = [p["name"] for p in merged["prompts"]]
                     if "Custom (migrated)" not in names:
-                        merged["prompts"].append({"name": "Custom (migrated)", "text": old})
+                        merged["prompts"].append(
+                            {"name": "Custom (migrated)", "text": old}
+                        )
                     merged["system_prompt"] = ""
                 return merged
             except Exception:
@@ -140,7 +146,9 @@ class Config:
 
     @property
     def active_prompt(self) -> str:
-        return self.data.get("active_prompt", self.prompt_names[0] if self.prompts else "")
+        return self.data.get(
+            "active_prompt", self.prompt_names[0] if self.prompts else ""
+        )
 
     @active_prompt.setter
     def active_prompt(self, name: str):

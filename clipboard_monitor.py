@@ -5,13 +5,13 @@ Emits structured log events via log_callback.
 """
 
 import re
-import threading
 import subprocess
 import sys
+import threading
 from typing import Callable, Optional
 
-
 # ── Clipboard readers ────────────────────────────────────────────────────────
+
 
 def _is_wsl() -> bool:
     try:
@@ -19,6 +19,7 @@ def _is_wsl() -> bool:
             return "microsoft" in f.read().lower()
     except Exception:
         return False
+
 
 _WSL = _is_wsl()
 
@@ -36,7 +37,13 @@ def _try_cmd(cmd: list, timeout: float = 2.0) -> Optional[str]:
 def _get_clipboard_wsl() -> Optional[str]:
     """Read Windows clipboard via PowerShell — works for apps like VS Code on WSL2."""
     val = _try_cmd(
-        ["powershell.exe", "-NoProfile", "-NonInteractive", "-command", "Get-Clipboard"],
+        [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-command",
+            "Get-Clipboard",
+        ],
         timeout=3.0,
     )
     if val is not None:
@@ -57,6 +64,7 @@ def _get_clipboard() -> tuple[str, str]:
     # 1. Try pyperclip (handles Linux/Windows/Mac via backends)
     try:
         import pyperclip
+
         val = pyperclip.paste()
         if val:
             return val, "pyperclip"
@@ -123,6 +131,7 @@ def is_likely_code(text: str, min_length: int = 20) -> tuple[bool, str]:
 
 # ── Monitor ──────────────────────────────────────────────────────────────────
 
+
 class ClipboardMonitor:
     def __init__(
         self,
@@ -142,7 +151,9 @@ class ClipboardMonitor:
 
     def start(self):
         self._stop_event.clear()
-        self._thread = threading.Thread(target=self._run, daemon=True, name="clipboard-monitor")
+        self._thread = threading.Thread(
+            target=self._run, daemon=True, name="clipboard-monitor"
+        )
         self._thread.start()
         self.log("INFO", "Clipboard monitor started")
 
@@ -162,7 +173,10 @@ class ClipboardMonitor:
         self._last_content = content
         self.log("DEBUG", f"Clipboard backend: {source}")
         if not content and source == "none":
-            self.log("WARN", "No clipboard backend found! Install xclip: sudo apt install xclip")
+            self.log(
+                "WARN",
+                "No clipboard backend found! Install xclip: sudo apt install xclip",
+            )
 
         while not self._stop_event.wait(self.poll_interval):
             try:
@@ -174,9 +188,11 @@ class ClipboardMonitor:
                 if content == self._last_content:
                     continue
 
-                prev_preview = self._last_content[:40].replace('\n', '↵')
-                new_preview = content[:40].replace('\n', '↵')
-                self.log("DEBUG", f"Clipboard changed ({len(content)} chars) via {source}")
+                prev_preview = self._last_content[:40].replace("\n", "↵")
+                new_preview = content[:40].replace("\n", "↵")
+                self.log(
+                    "DEBUG", f"Clipboard changed ({len(content)} chars) via {source}"
+                )
                 self.log("DEBUG", f"  Preview: {new_preview!r}")
                 self._last_content = content
 

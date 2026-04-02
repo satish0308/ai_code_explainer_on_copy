@@ -2,17 +2,19 @@
 Tests for AI provider integrations.
 Note: These tests use mocking to avoid actual API calls.
 """
-import sys
+
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from unittest.mock import Mock, patch
 
 from ai_providers import (
-    OpenAIProvider,
-    NvidiaProvider,
     GeminiProvider,
+    NvidiaProvider,
     OllamaProvider,
+    OpenAIProvider,
     build_provider,
 )
 
