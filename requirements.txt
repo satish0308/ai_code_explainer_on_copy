@@ -1,15 +1,12 @@
-# Core
+# Auto Code Explainer - Core Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core functionality
 requests>=2.31.0
-
-# Clipboard access (fallback for non-X11 systems)
 pyperclip>=1.8.2
-
-# System tray (optional but recommended)
 pystray>=0.19.5
 Pillow>=10.0.0
+pyttsx3>=2.90
 
-# Optional: for better clipboard support on Linux
-# Install one of: xclip, xsel, or wl-clipboard via your package manager
-# sudo apt install xclip
-
-pyttsx3
+# Optional: Better clipboard support on Linux
+# sudo apt install xclip xsel wl-clipboard

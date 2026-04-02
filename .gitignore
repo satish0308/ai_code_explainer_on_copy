@@ -208,3 +208,18 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Auto Code Explainer specific
+.config.json
+*.json
+*.log
+dist/
+build/
+*.tar.gz
+*.whl
+poetry.lock
+.pytest_cache/
+.coverage
+htmlcov/
+output.mp3
+temp/

@@ -1,0 +1,18 @@
+# Auto Code Explainer - Code Owners
+# These owners will be the default owners for everything in the repo.
+
+* @satish0308
+
+# UI code
+ui/ @satish0308
+
+# Core logic
+config.py @satish0308
+ai_providers.py @satish0308
+clipboard_monitor.py @satish0308
+
+# Tests
+tests/ @satish0308
+
+# CI/CD
+.github/workflows/*.yml @satish0308

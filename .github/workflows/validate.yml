@@ -1,0 +1,43 @@
+name: Validate Package
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate Python Package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        uses: snakypy/actions-install-poetry@v1.1.0
+
+      - name: Check pyproject.toml syntax
+        run: |
+          poetry check
+
+      - name: Check for unreachable dependencies
+        run: |
+          poetry check --dry-run
+
+      - name: Build package to verify
+        run: |
+          poetry build
+
+      - name: List built artifacts
+        run: |
+          ls -la dist/
+
+      - name: Validate built wheel
+        run: |
+          pip install --dry-run dist/*.whl

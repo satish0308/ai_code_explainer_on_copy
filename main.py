@@ -25,5 +25,11 @@ def main():
     app.run()
 
 
+def get_app():
+    """Get the app instance for testing purposes."""
+    from ui.app import App
+    return App()
+
+
 if __name__ == "__main__":
     main()
