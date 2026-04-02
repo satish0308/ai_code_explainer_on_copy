@@ -78,6 +78,8 @@ DEFAULT_CONFIG = {
     "min_code_length": 20,
     "prompts": DEFAULT_PROMPTS,
     "active_prompt": "General Explainer",
+    # Audio output settings
+    "enable_audio": False,
     # legacy field kept for migration
     "system_prompt": "",
 }

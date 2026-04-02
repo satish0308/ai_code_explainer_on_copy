@@ -3,6 +3,7 @@ Explanation popup window.
 - Streams AI response with live text
 - Prompt selector bar: switch prompt and Re-explain without closing
 - A− / A+ buttons (and Ctrl+scroll) resize the explanation text live
+- Audio output for explanation content
 """
 
 import tkinter as tk
@@ -26,9 +27,9 @@ FONT_MONO   = ("Consolas",  12)
 FONT_SMALL  = ("Segoe UI",  11)
 FONT_HEADER = ("Segoe UI",  14, "bold")
 
-DEFAULT_SIZE = 14   # explanation body default pt
-MIN_SIZE     = 9
-MAX_SIZE     = 40
+DEFAULT_SIZE = 28   # explanation body default pt
+MIN_SIZE     = 8
+MAX_SIZE     = 60
 
 
 class ExplanationPopup(tk.Toplevel):
@@ -41,6 +42,7 @@ class ExplanationPopup(tk.Toplevel):
         make_stream_fn: Callable[[str], Generator[str, None, None]],
         prompts: list[dict],
         active_prompt: str,
+        config=None,
     ):
         super().__init__(parent)
         self.code           = code
@@ -51,11 +53,31 @@ class ExplanationPopup(tk.Toplevel):
         self._queue         = queue.Queue()
         self._streaming     = False
         self._font_size     = DEFAULT_SIZE   # tracks current body font size
+        self.config         = config  # for audio settings
 
         self._setup_window()
         self._build_ui(active_prompt)
         self._start_stream()
         self._poll_queue()
+
+    def _speak_explanation(self, text: str):
+        """Speak the explanation text using system TTS."""
+        try:
+            import pyttsx3
+            engine = pyttsx3.init()
+            # Adjust rate - slightly slower for better clarity
+            engine.setProperty('rate', 150)
+            # Speak the text
+            engine.say(text)
+            engine.runAndWait()
+        except ImportError:
+            self.status_var.set("Install pyttsx3 for audio: pip install pyttsx3")
+            self.status_lbl.configure(fg=DARK_ERROR)
+            self.after(2500, lambda: self.status_var.set("Done  ✓" if not self._streaming else "Generating…"))
+        except Exception as e:
+            self.status_var.set(f"Audio error: {e}")
+            self.status_lbl.configure(fg=DARK_ERROR)
+            self.after(2500, lambda: self.status_var.set("Done  ✓" if not self._streaming else "Generating…"))
 
     # ── Window ────────────────────────────────────────────────────────────────
 
@@ -194,12 +216,20 @@ class ExplanationPopup(tk.Toplevel):
         # Separator
         tk.Frame(sbar, bg=DARK_SURFACE, width=1).pack(side="right", fill="y", pady=4)
 
+        # Audio button (speak explanation)
+        self.audio_btn = tk.Button(sbar, text="🔊", fg=DARK_ACCENT, bg=DARK_PANEL,
+                                   activeforeground=DARK_TEXT, activebackground=DARK_SURFACE,
+                                   relief="flat", cursor="hand2",
+                                   font=("Segoe UI", 12), padx=10, pady=3,
+                                   command=self._speak_explanation_current)
+        self.audio_btn.pack(side="right", padx=2, pady=4)
+
         # A+ button
         tk.Button(sbar, text="A+", fg=DARK_ACCENT, bg=DARK_PANEL,
                   activeforeground=DARK_TEXT, activebackground=DARK_SURFACE,
                   relief="flat", cursor="hand2",
                   font=("Segoe UI", 12, "bold"), padx=10, pady=3,
-                  command=lambda: self._resize_font(+2)).pack(side="right", padx=2, pady=4)
+                  command=lambda: (print("A+ clicked"), self._resize_font(2))).pack(side="right", padx=2, pady=4)
 
         # Size label
         self.font_size_lbl = tk.Label(sbar, text=f"{self._font_size}pt",
@@ -212,7 +242,7 @@ class ExplanationPopup(tk.Toplevel):
                   activeforeground=DARK_TEXT, activebackground=DARK_SURFACE,
                   relief="flat", cursor="hand2",
                   font=("Segoe UI", 12, "bold"), padx=10, pady=3,
-                  command=lambda: self._resize_font(-2)).pack(side="right", padx=2, pady=4)
+                  command=lambda: (print("A− clicked"), self._resize_font(-2))).pack(side="right", padx=2, pady=4)
 
         tk.Frame(sbar, bg=DARK_SURFACE, width=1).pack(side="right", fill="y", pady=4)
 
@@ -236,15 +266,31 @@ class ExplanationPopup(tk.Toplevel):
             font=("Consolas", max(MIN_SIZE, new_size - 1)),
             background=DARK_CODE_BG, foreground="#a6e3a1")
 
-        # Re-apply "body" tag to all existing text to update font
+        # Force a complete redraw
         self.exp_box.configure(state="normal")
-        # Remove all tags first, then re-apply with "body" tag
-        # This ensures all text gets the new font
+
+        # Remove all tags completely
         self.exp_box.tag_remove("body", "1.0", "end")
-        self.exp_box.tag_add("body", "1.0", "end")
+        self.exp_box.tag_remove("header", "1.0", "end")
+        self.exp_box.tag_remove("code_inline", "1.0", "end")
+        self.exp_box.tag_remove("error", "1.0", "end")
+
+        # Get text and reinsert with body tag
+        text_content = self.exp_box.get("1.0", "end-1c")
+        self.exp_box.delete("1.0", "end")
+
+        if text_content:
+            self.exp_box.insert("1.0", text_content, "body")
+
+        # Update label before forcing redraw
+        self.font_size_lbl.configure(text=f"{new_size}pt")
+
+        # Force all pending updates to process
+        self.exp_box.update_idletasks()
+        self.update_idletasks()
 
         self.exp_box.configure(state="disabled")
-        self.font_size_lbl.configure(text=f"{new_size}pt")
+        print(f"Font resized to {new_size}pt (delta: {delta})")  # Debug
 
     def _on_ctrl_scroll(self, event):
         # Debug: print event details
@@ -301,6 +347,9 @@ class ExplanationPopup(tk.Toplevel):
                     self.status_var.set("Done  ✓")
                     self.status_lbl.configure(fg=DARK_SUCCESS)
                     self.reexplain_btn.configure(state="normal")
+                    # Speak if audio enabled
+                    if self.config and self.config.data.get("enable_audio", False):
+                        threading.Thread(target=self._speak_explanation_current, daemon=True).start()
                 elif kind == "error":
                     self._streaming = False
                     self._append_text(f"\n\n[Error: {data}]", extra_tag="error")
@@ -355,3 +404,15 @@ class ExplanationPopup(tk.Toplevel):
     def _close(self):
         self._streaming = False
         self.destroy()
+
+    def _speak_explanation_current(self):
+        """Speak the current explanation text."""
+        self.exp_box.configure(state="normal")
+        text = self.exp_box.get("1.0", "end-1c")
+        self.exp_box.configure(state="disabled")
+        if text.strip():
+            # Run TTS in a separate thread to not block UI
+            threading.Thread(target=self._speak_explanation, args=(text,), daemon=True).start()
+        else:
+            self.status_var.set("No explanation to speak")
+            self.after(1500, lambda: self.status_var.set("Generating explanation…" if self._streaming else "Done  ✓"))

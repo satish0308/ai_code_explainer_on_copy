@@ -499,6 +499,7 @@ class App(tk.Tk):
             make_stream_fn=make_stream_fn,
             prompts=self.config_obj.prompts,
             active_prompt=self.config_obj.active_prompt,
+            config=self.config_obj,
         )
         popup.protocol("WM_DELETE_WINDOW", lambda: self._on_popup_close(popup))
         self._active_popup = popup

@@ -458,6 +458,18 @@ class SettingsDialog(tk.Toplevel):
                  fg=MUTED, bg=BG, font=F_SMALL).grid(
             row=2, column=0, columnspan=2, sticky="w", padx=16)
 
+        # Audio output section
+        _section(f, "Audio Output", 3)
+        self.enable_audio_var = tk.BooleanVar(value=self.config.data.get("enable_audio", False))
+        tk.Checkbutton(f, text="Enable audio output for explanations",
+                       variable=self.enable_audio_var,
+                       bg=BG, fg=TEXT, activebackground=BG, activeforeground=ACCENT,
+                       selectcolor=SURFACE, font=F_UI,
+                       cursor="hand2").grid(row=4, column=0, columnspan=2, sticky="w", padx=16, pady=4)
+        tk.Label(f, text="Text-to-speech will speak the explanation when complete",
+                 fg=MUTED, bg=BG, font=F_SMALL).grid(
+            row=5, column=0, columnspan=2, sticky="w", padx=16)
+
     # ── Shared helpers ────────────────────────────────────────────────────────
 
     def _test_connection(self):
@@ -502,6 +514,7 @@ class SettingsDialog(tk.Toplevel):
             self.config.data["min_code_length"] = int(self.min_len.get().strip())
         except ValueError:
             pass
+        self.config.data["enable_audio"] = self.enable_audio_var.get()
         # Prompts
         self.config.data["prompts"]       = self._prompts
         self.config.data["active_prompt"] = self._default_name
