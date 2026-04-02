@@ -164,9 +164,19 @@ class ExplanationPopup(tk.Toplevel):
             foreground=DARK_ERROR)
 
         # Ctrl+scroll resizes font
+        # Bind to both exp_box and self (the popup window) to ensure it works
+        # regardless of which widget has focus
         self.exp_box.bind("<Control-MouseWheel>", self._on_ctrl_scroll)
         self.exp_box.bind("<Control-Button-4>",   self._on_ctrl_scroll)
         self.exp_box.bind("<Control-Button-5>",   self._on_ctrl_scroll)
+        self.bind("<Control-MouseWheel>", self._on_ctrl_scroll)
+        self.bind("<Control-Button-4>",   self._on_ctrl_scroll)
+        self.bind("<Control-Button-5>",   self._on_ctrl_scroll)
+
+        # Also bind to the code box for completeness
+        self.code_box.bind("<Control-MouseWheel>", self._on_ctrl_scroll)
+        self.code_box.bind("<Control-Button-4>",   self._on_ctrl_scroll)
+        self.code_box.bind("<Control-Button-5>",   self._on_ctrl_scroll)
 
         paned.add(ef, minsize=140)
 
@@ -248,6 +258,12 @@ class ExplanationPopup(tk.Toplevel):
         self.font_size_lbl.configure(text=f"{new_size}pt")
 
     def _on_ctrl_scroll(self, event):
+        # Get the actual widget that triggered the event
+        widget = event.widget
+        # Only process if the event came from exp_box or the popup itself
+        if widget not in (self.exp_box, self):
+            return "break"
+
         if hasattr(event, "num"):          # Linux X11
             delta = +2 if event.num == 4 else -2
         else:                              # Windows / WSL
