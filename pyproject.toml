@@ -3,7 +3,7 @@ name = "auto-code-explainer"
 version = "0.2.0"
 description = "Automatic code explanation tool - monitors clipboard and explains code using AI"
 license = "MIT"
-authors = ["Your Name <you@example.com>"]
+authors = Satish Hiremath
 readme = "README.md"
 homepage = "https://github.com/yourusername/auto-code-explainer"
 repository = "https://github.com/yourusername/auto-code-explainer"
@@ -22,7 +22,7 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.8,<3.12"
 requests = ">=2.31.0"
 pyperclip = ">=1.8.2"
 pystray = ">=0.19.5"
