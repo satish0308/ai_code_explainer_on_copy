@@ -23,9 +23,21 @@ DARK_SURFACE = "#313244"
 DARK_SUCCESS = "#a6e3a1"
 DARK_ERROR   = "#f38ba8"
 
-FONT_MONO   = ("Consolas",  12)
-FONT_SMALL  = ("Segoe UI",  11)
-FONT_HEADER = ("Segoe UI",  14, "bold")
+import platform
+
+SYSTEM = platform.system()
+if SYSTEM == "Darwin":  # macOS
+    FONT_HEADER = ("SF Pro Display", 14, "bold")
+    FONT_SMALL  = ("SF Pro Display", 11)
+    FONT_MONO   = ("Menlo", 12)
+elif SYSTEM == "Windows":
+    FONT_HEADER = ("Segoe UI", 14, "bold")
+    FONT_SMALL  = ("Segoe UI", 11)
+    FONT_MONO   = ("Consolas", 12)
+else:  # Linux
+    FONT_HEADER = ("DejaVu Sans", 12, "bold")
+    FONT_SMALL  = ("DejaVu Sans", 10)
+    FONT_MONO   = ("DejaVu Sans Mono", 11)
 
 DEFAULT_SIZE = 28   # explanation body default pt
 MIN_SIZE     = 8
@@ -73,11 +85,11 @@ class ExplanationPopup(tk.Toplevel):
         except ImportError:
             self.status_var.set("Install pyttsx3 for audio: pip install pyttsx3")
             self.status_lbl.configure(fg=DARK_ERROR)
-            self.after(2500, lambda: self.status_var.set("Done  ✓" if not self._streaming else "Generating…"))
+            self.after(2500, lambda: self.status_var.set("Done" if not self._streaming else "Generating..."))
         except Exception as e:
             self.status_var.set(f"Audio error: {e}")
             self.status_lbl.configure(fg=DARK_ERROR)
-            self.after(2500, lambda: self.status_var.set("Done  ✓" if not self._streaming else "Generating…"))
+            self.after(2500, lambda: self.status_var.set("Done" if not self._streaming else "Generating..."))
 
     # ── Window ────────────────────────────────────────────────────────────────
 
@@ -85,10 +97,10 @@ class ExplanationPopup(tk.Toplevel):
         self.title("Code Explainer")
         self.configure(bg=DARK_BG)
         self.attributes("-topmost", True)
-        w, h = 880, 720
+        w, h = 960, 800
         sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
         self.geometry(f"{w}x{h}+{(sw-w)//2}+{(sh-h)//2}")
-        self.minsize(560, 420)
+        self.minsize(640, 480)
         self.columnconfigure(0, weight=1)
         self.rowconfigure(2, weight=1)
 
@@ -100,16 +112,16 @@ class ExplanationPopup(tk.Toplevel):
         hdr.grid(row=0, column=0, sticky="ew")
         hdr.columnconfigure(1, weight=1)
 
-        tk.Label(hdr, text="⬤", fg=DARK_ACCENT, bg=DARK_PANEL,
-                 font=("", 9)).grid(row=0, column=0, padx=(0, 8))
+        tk.Label(hdr, text="●", fg=DARK_ACCENT, bg=DARK_PANEL,
+                 font=("DejaVu Sans", 10)).grid(row=0, column=0, padx=(0, 8))
         tk.Label(hdr, text="Code Explanation", fg=DARK_TEXT,
                  bg=DARK_PANEL, font=FONT_HEADER).grid(row=0, column=1, sticky="w")
-        tk.Label(hdr, text=f"{self.provider_name.upper()}  ·  {self.model}",
+        tk.Label(hdr, text=f"{self.provider_name.upper()} - {self.model}",
                  fg=DARK_MUTED, bg=DARK_PANEL,
                  font=FONT_SMALL).grid(row=1, column=1, sticky="w")
-        tk.Button(hdr, text="✕", fg=DARK_MUTED, bg=DARK_PANEL,
+        tk.Button(hdr, text="[X]", fg=DARK_MUTED, bg=DARK_PANEL,
                   activeforeground=DARK_ERROR, activebackground=DARK_PANEL,
-                  relief="flat", cursor="hand2", font=("", 13),
+                  relief="flat", cursor="hand2", font=("DejaVu Sans", 10),
                   command=self._close).grid(row=0, column=2, rowspan=2, padx=6)
 
         # Row 1 – prompt bar
@@ -133,9 +145,9 @@ class ExplanationPopup(tk.Toplevel):
                      style="P.TCombobox").grid(row=0, column=1, sticky="ew", padx=(0, 10))
 
         self.reexplain_btn = tk.Button(
-            pbar, text="↺  Re-explain", bg=DARK_ACCENT, fg="#000",
+            pbar, text="Re-explain", bg=DARK_ACCENT, fg="#000",
             activebackground="#74c7ec", relief="flat", cursor="hand2",
-            font=("Segoe UI", 11, "bold"), padx=14, pady=4,
+            font=("DejaVu Sans", 11, "bold"), padx=14, pady=4,
             command=self._reexplain,
         )
         self.reexplain_btn.grid(row=0, column=2, padx=(0, 4))
@@ -217,18 +229,18 @@ class ExplanationPopup(tk.Toplevel):
         tk.Frame(sbar, bg=DARK_SURFACE, width=1).pack(side="right", fill="y", pady=4)
 
         # Audio button (speak explanation)
-        self.audio_btn = tk.Button(sbar, text="🔊", fg=DARK_ACCENT, bg=DARK_PANEL,
+        self.audio_btn = tk.Button(sbar, text="Volume", fg=DARK_ACCENT, bg=DARK_PANEL,
                                    activeforeground=DARK_TEXT, activebackground=DARK_SURFACE,
                                    relief="flat", cursor="hand2",
-                                   font=("Segoe UI", 12), padx=10, pady=3,
+                                   font=("DejaVu Sans", 10), padx=10, pady=3,
                                    command=self._speak_explanation_current)
         self.audio_btn.pack(side="right", padx=2, pady=4)
 
         # A+ button
-        tk.Button(sbar, text="A+", fg=DARK_ACCENT, bg=DARK_PANEL,
+        tk.Button(sbar, text="+", fg=DARK_ACCENT, bg=DARK_PANEL,
                   activeforeground=DARK_TEXT, activebackground=DARK_SURFACE,
                   relief="flat", cursor="hand2",
-                  font=("Segoe UI", 12, "bold"), padx=10, pady=3,
+                  font=("DejaVu Sans", 12, "bold"), padx=10, pady=3,
                   command=lambda: (print("A+ clicked"), self._resize_font(2))).pack(side="right", padx=2, pady=4)
 
         # Size label
@@ -238,10 +250,10 @@ class ExplanationPopup(tk.Toplevel):
         self.font_size_lbl.pack(side="right", pady=4)
 
         # A− button
-        tk.Button(sbar, text="A−", fg=DARK_MUTED, bg=DARK_PANEL,
+        tk.Button(sbar, text="-", fg=DARK_MUTED, bg=DARK_PANEL,
                   activeforeground=DARK_TEXT, activebackground=DARK_SURFACE,
                   relief="flat", cursor="hand2",
-                  font=("Segoe UI", 12, "bold"), padx=10, pady=3,
+                  font=("DejaVu Sans", 12, "bold"), padx=10, pady=3,
                   command=lambda: (print("A− clicked"), self._resize_font(-2))).pack(side="right", padx=2, pady=4)
 
         tk.Frame(sbar, bg=DARK_SURFACE, width=1).pack(side="right", fill="y", pady=4)
@@ -344,7 +356,7 @@ class ExplanationPopup(tk.Toplevel):
                     self._append_text(data)
                 elif kind == "done":
                     self._streaming = False
-                    self.status_var.set("Done  ✓")
+                    self.status_var.set("Done")
                     self.status_lbl.configure(fg=DARK_SUCCESS)
                     self.reexplain_btn.configure(state="normal")
                     # Speak if audio enabled
@@ -399,7 +411,7 @@ class ExplanationPopup(tk.Toplevel):
         self.clipboard_append(text)
         self.status_var.set("Copied to clipboard!")
         self.after(2000, lambda: self.status_var.set(
-            "Done  ✓" if not self._streaming else "Generating…"))
+            "Done" if not self._streaming else "Generating..."))
 
     def _close(self):
         self._streaming = False
@@ -415,4 +427,4 @@ class ExplanationPopup(tk.Toplevel):
             threading.Thread(target=self._speak_explanation, args=(text,), daemon=True).start()
         else:
             self.status_var.set("No explanation to speak")
-            self.after(1500, lambda: self.status_var.set("Generating explanation…" if self._streaming else "Done  ✓"))
+            self.after(1500, lambda: self.status_var.set("Generating explanation..." if self._streaming else "Done"))

@@ -39,11 +39,29 @@ PROVIDER_COLORS = {
     "ollama":  "#cba6f7",
 }
 
-F_HEADER = ("Segoe UI", 13, "bold")
-F_UI     = ("Segoe UI", 11)
-F_SMALL  = ("Segoe UI", 10)
-F_MONO   = ("Consolas", 10)
-F_LOG    = ("Consolas", 9)
+# Font definitions - cross-platform compatible
+# Uses system UI fonts that work on Windows, macOS, and Linux
+import platform
+
+SYSTEM = platform.system()
+if SYSTEM == "Darwin":  # macOS
+    F_HEADER = ("SF Pro Display", 13, "bold")
+    F_UI     = ("SF Pro Display", 11)
+    F_SMALL  = ("SF Pro Display", 10)
+    F_MONO   = ("Menlo", 10)
+    F_LOG    = ("Menlo", 9)
+elif SYSTEM == "Windows":
+    F_HEADER = ("Segoe UI", 13, "bold")
+    F_UI     = ("Segoe UI", 11)
+    F_SMALL  = ("Segoe UI", 10)
+    F_MONO   = ("Consolas", 10)
+    F_LOG    = ("Consolas", 9)
+else:  # Linux
+    F_HEADER = ("DejaVu Sans", 11, "bold")
+    F_UI     = ("DejaVu Sans", 10)
+    F_SMALL  = ("DejaVu Sans", 9)
+    F_MONO   = ("DejaVu Sans Mono", 9)
+    F_LOG    = ("DejaVu Sans Mono", 8)
 
 LOG_COLORS = {
     "INFO":  ACCENT,
@@ -78,10 +96,19 @@ class App(tk.Tk):
     def _setup_window(self):
         self.title("Auto Code Explainer")
         self.configure(bg=BG)
-        self.geometry("920x680+60+60")
-        self.minsize(700, 500)
+        # Increased default size for better visibility
+        self.geometry("1100x800+60+60")
+        self.minsize(850, 640)
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
+
+        # Apply DPI scaling on Windows
+        if SYSTEM == "Windows":
+            try:
+                from ctypes import windll
+                windll.shcore.SetProcessDpiAwareness(1)
+            except Exception:
+                pass
 
     def _apply_ttk_style(self):
         s = ttk.Style(self)
@@ -113,12 +140,12 @@ class App(tk.Tk):
         # Toggle
         self.toggle_var = tk.BooleanVar(value=self.config_obj.enabled)
         self.toggle_btn = tk.Button(
-            hdr, text="", width=7, relief="flat", cursor="hand2",
-            font=("Segoe UI", 10, "bold"), command=self._toggle,
+            hdr, text="OFF", width=7, relief="flat", cursor="hand2",
+            font=("DejaVu Sans", 10, "bold"), command=self._toggle,
         )
         self.toggle_btn.grid(row=0, column=2, padx=6)
 
-        tk.Button(hdr, text="⚙  Settings", fg=MUTED, bg=SURFACE,
+        tk.Button(hdr, text="Settings", fg=MUTED, bg=SURFACE,
                   activebackground=BORDER, relief="flat", cursor="hand2",
                   font=F_SMALL, padx=12, pady=4,
                   command=self._open_settings).grid(row=0, column=3, padx=(0, 12))
@@ -156,8 +183,8 @@ class App(tk.Tk):
         strip.grid(row=0, column=0, sticky="ew", padx=16, pady=(14, 0))
         strip.columnconfigure(1, weight=1)
 
-        self.monitor_dot = tk.Label(strip, text="⬤", fg=SUCCESS, bg=SURFACE,
-                                    font=("", 12), padx=10)
+        self.monitor_dot = tk.Label(strip, text="●", fg=SUCCESS, bg=SURFACE,
+                                    font=("DejaVu Sans", 14), padx=10)
         self.monitor_dot.grid(row=0, column=0)
 
         self.monitor_status_lbl = tk.Label(strip, text="", fg=TEXT, bg=SURFACE,
@@ -243,9 +270,9 @@ class App(tk.Tk):
         self.test_prompt_combo.grid(row=0, column=1, sticky="ew", padx=(0, 10))
 
         self.explain_btn = tk.Button(
-            ctrl, text="▶  Explain Code", bg=ACCENT, fg="#000",
+            ctrl, text="Explain Code", bg=ACCENT, fg="#000",
             activebackground="#74c7ec", relief="flat", cursor="hand2",
-            font=("Segoe UI", 11, "bold"), padx=16, pady=6,
+            font=("DejaVu Sans", 11, "bold"), padx=16, pady=6,
             command=self._test_explain,
         )
         self.explain_btn.grid(row=0, column=2)
@@ -260,16 +287,16 @@ class App(tk.Tk):
 
         # Zoom controls for explanation text
         tk.Frame(ctrl, bg=SURFACE, width=1).grid(row=0, column=5, sticky="ns", padx=(10, 4))
-        tk.Button(ctrl, text="A−", fg=MUTED, bg=SURFACE,
+        tk.Button(ctrl, text="-", fg=MUTED, bg=SURFACE,
                   activeforeground=TEXT, activebackground=BORDER, relief="flat",
-                  cursor="hand2", font=("Segoe UI", 10, "bold"), padx=8, pady=2,
+                  cursor="hand2", font=("DejaVu Sans", 10, "bold"), padx=8, pady=2,
                   command=lambda: self._resize_test_output(-2)).grid(row=0, column=6, padx=(0, 2))
         self._test_output_size_lbl = tk.Label(ctrl, text="11pt", fg=MUTED, bg=SURFACE,
-                                              font=("Segoe UI", 9), width=4)
+                                              font=("DejaVu Sans", 9), width=4)
         self._test_output_size_lbl.grid(row=0, column=7, padx=(0, 2))
-        tk.Button(ctrl, text="A+", fg=ACCENT, bg=SURFACE,
+        tk.Button(ctrl, text="+", fg=ACCENT, bg=SURFACE,
                   activeforeground=TEXT, activebackground=BORDER, relief="flat",
-                  cursor="hand2", font=("Segoe UI", 10, "bold"), padx=8, pady=2,
+                  cursor="hand2", font=("DejaVu Sans", 10, "bold"), padx=8, pady=2,
                   command=lambda: self._resize_test_output(+2)).grid(row=0, column=8)
 
         # Output area
@@ -341,16 +368,16 @@ class App(tk.Tk):
 
         # Zoom controls for log text
         tk.Frame(btn_bar, bg=SURFACE, width=1).pack(side="left", fill="y", padx=10)
-        tk.Button(btn_bar, text="A−", fg=MUTED, bg=SURFACE,
+        tk.Button(btn_bar, text="-", fg=MUTED, bg=SURFACE,
                   activeforeground=TEXT, activebackground=BORDER, relief="flat",
-                  cursor="hand2", font=("Segoe UI", 10, "bold"), padx=8, pady=2,
+                  cursor="hand2", font=("DejaVu Sans", 10, "bold"), padx=8, pady=2,
                   command=lambda: self._resize_log(-2)).pack(side="left", padx=(10, 2))
         self._log_size_lbl = tk.Label(btn_bar, text="9pt", fg=MUTED, bg=SURFACE,
-                                      font=("Segoe UI", 9), width=4)
+                                      font=("DejaVu Sans", 9), width=4)
         self._log_size_lbl.pack(side="left", padx=(0, 2))
-        tk.Button(btn_bar, text="A+", fg=ACCENT, bg=SURFACE,
+        tk.Button(btn_bar, text="+", fg=ACCENT, bg=SURFACE,
                   activeforeground=TEXT, activebackground=BORDER, relief="flat",
-                  cursor="hand2", font=("Segoe UI", 10, "bold"), padx=8, pady=2,
+                  cursor="hand2", font=("DejaVu Sans", 10, "bold"), padx=8, pady=2,
                   command=lambda: self._resize_log(+2)).pack(side="left", padx=2)
 
     # ── Toggle & labels ───────────────────────────────────────────────────────
@@ -358,7 +385,7 @@ class App(tk.Tk):
     def _update_toggle_btn(self):
         enabled = self.toggle_var.get()
         self.toggle_btn.configure(
-            text="● ON" if enabled else "○ OFF",
+            text="ON" if enabled else "OFF",
             bg=SUCCESS if enabled else SURFACE,
             fg="#000" if enabled else MUTED,
             activebackground=SUCCESS if enabled else BORDER,

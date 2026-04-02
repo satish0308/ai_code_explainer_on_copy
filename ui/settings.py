@@ -20,10 +20,24 @@ SUCCESS     = "#a6e3a1"
 ERROR       = "#f38ba8"
 CODE_BG     = "#11111b"
 
-F_UI    = ("Segoe UI", 11)
-F_SMALL = ("Segoe UI", 10)
-F_BOLD  = ("Segoe UI", 11, "bold")
-F_MONO  = ("Consolas", 11)
+import platform
+
+SYSTEM = platform.system()
+if SYSTEM == "Darwin":  # macOS
+    F_UI    = ("SF Pro Display", 11)
+    F_SMALL = ("SF Pro Display", 10)
+    F_BOLD  = ("SF Pro Display", 11, "bold")
+    F_MONO  = ("Menlo", 11)
+elif SYSTEM == "Windows":
+    F_UI    = ("Segoe UI", 11)
+    F_SMALL = ("Segoe UI", 10)
+    F_BOLD  = ("Segoe UI", 11, "bold")
+    F_MONO  = ("Consolas", 11)
+else:  # Linux
+    F_UI    = ("DejaVu Sans", 10)
+    F_SMALL = ("DejaVu Sans", 9)
+    F_BOLD  = ("DejaVu Sans", 10, "bold")
+    F_MONO  = ("DejaVu Sans Mono", 10)
 
 
 def _entry(parent, **kw) -> tk.Entry:
@@ -49,16 +63,16 @@ class SettingsDialog(tk.Toplevel):
         # Working copy of prompts — only written to config on Save
         self._prompts: list[dict] = copy.deepcopy(config.prompts)
 
-        self.title("Settings — Auto Code Explainer")
+        self.title("Settings - Auto Code Explainer")
         self.configure(bg=BG)
         self.resizable(True, True)
         self.attributes("-topmost", True)
 
-        w, h = 720, 640
+        w, h = 840, 720
         sw = self.winfo_screenwidth()
         sh = self.winfo_screenheight()
         self.geometry(f"{w}x{h}+{(sw-w)//2}+{(sh-h)//2}")
-        self.minsize(600, 500)
+        self.minsize(700, 600)
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
 
@@ -158,7 +172,7 @@ class SettingsDialog(tk.Toplevel):
     def _key_row(self, parent, label: str, row: int, value: str) -> tk.Entry:
         tk.Label(parent, text=label, fg=TEXT, bg=BG,
                  font=F_UI).grid(row=row, column=0, sticky="w", padx=16, pady=4)
-        e = _entry(parent, show="•", width=42)
+        e = _entry(parent, show="*", width=42)
         e.insert(0, value)
         e.grid(row=row, column=1, sticky="ew", padx=(0, 14), pady=4)
         return e
@@ -240,7 +254,7 @@ class SettingsDialog(tk.Toplevel):
         btn_row = tk.Frame(left, bg=BG)
         btn_row.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(6, 0))
 
-        tk.Button(btn_row, text="+ New", fg=TEXT, bg=SURFACE,
+        tk.Button(btn_row, text="New", fg=TEXT, bg=SURFACE,
                   activebackground=BORDER, relief="flat", cursor="hand2",
                   font=F_SMALL, padx=8, pady=4,
                   command=self._new_prompt).pack(side="left", padx=(0, 4))
@@ -317,7 +331,7 @@ class SettingsDialog(tk.Toplevel):
     def _refresh_prompt_list(self):
         self.prompt_list.delete(0, "end")
         for p in self._prompts:
-            mark = " ★" if p["name"] == self._default_name else ""
+            mark = " [DEFAULT]" if p["name"] == self._default_name else ""
             self.prompt_list.insert("end", f"  {p['name']}{mark}")
 
     def _on_prompt_select(self, _event=None):
