@@ -150,6 +150,16 @@ class ExplanationPopup(tk.Toplevel):
         )
         self.exp_box.pack(fill="both", expand=True, padx=8, pady=(0, 4))
 
+        # Bind zoom to the main explanation text box (primary zoom target)
+        self.exp_box.bind("<Control-MouseWheel>", self._on_ctrl_scroll)
+        self.exp_box.bind("<Control-Button-4>",   self._on_ctrl_scroll)
+        self.exp_box.bind("<Control-Button-5>",   self._on_ctrl_scroll)
+
+        # Also bind to parent window for WSL compatibility
+        self.bind("<Control-MouseWheel>", self._on_ctrl_scroll)
+        self.bind("<Control-Button-4>",   self._on_ctrl_scroll)
+        self.bind("<Control-Button-5>",   self._on_ctrl_scroll)
+
         # Define all tags — "body" is applied to EVERY inserted chunk
         self.exp_box.tag_configure("body",
             font=("Segoe UI", self._font_size),
@@ -164,19 +174,13 @@ class ExplanationPopup(tk.Toplevel):
             foreground=DARK_ERROR)
 
         # Ctrl+scroll resizes font
-        # Bind to both exp_box and self (the popup window) to ensure it works
-        # regardless of which widget has focus
+        # Bind to exp_box (where user typically scrolls) and self (popup window)
         self.exp_box.bind("<Control-MouseWheel>", self._on_ctrl_scroll)
         self.exp_box.bind("<Control-Button-4>",   self._on_ctrl_scroll)
         self.exp_box.bind("<Control-Button-5>",   self._on_ctrl_scroll)
         self.bind("<Control-MouseWheel>", self._on_ctrl_scroll)
         self.bind("<Control-Button-4>",   self._on_ctrl_scroll)
         self.bind("<Control-Button-5>",   self._on_ctrl_scroll)
-
-        # Also bind to the code box for completeness
-        self.code_box.bind("<Control-MouseWheel>", self._on_ctrl_scroll)
-        self.code_box.bind("<Control-Button-4>",   self._on_ctrl_scroll)
-        self.code_box.bind("<Control-Button-5>",   self._on_ctrl_scroll)
 
         paned.add(ef, minsize=140)
 
@@ -258,16 +262,19 @@ class ExplanationPopup(tk.Toplevel):
         self.font_size_lbl.configure(text=f"{new_size}pt")
 
     def _on_ctrl_scroll(self, event):
-        # Get the actual widget that triggered the event
-        widget = event.widget
-        # Only process if the event came from exp_box or the popup itself
-        if widget not in (self.exp_box, self):
+        # Ensure popup has focus
+        self.focus_set()
+
+        # Detect scroll direction based on event source
+        if hasattr(event, "num"):          # Linux X11
+            # Button-4 = scroll up, Button-5 = scroll down
+            delta = +2 if event.num == 4 else -2
+        elif hasattr(event, "delta"):      # Windows / WSL
+            # Positive delta = scroll up, negative = scroll down
+            delta = +2 if event.delta > 0 else -2
+        else:
             return "break"
 
-        if hasattr(event, "num"):          # Linux X11
-            delta = +2 if event.num == 4 else -2
-        else:                              # Windows / WSL
-            delta = +2 if event.delta > 0 else -2
         self._resize_font(delta)
         return "break"
 
