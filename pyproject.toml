@@ -22,7 +22,7 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.12"
+python = ">=3.8,<4.0"
 requests = ">=2.31.0"
 pyperclip = ">=1.8.2"
 pystray = ">=0.19.5"
