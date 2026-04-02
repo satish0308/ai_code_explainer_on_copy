@@ -11,3 +11,5 @@ Pillow>=10.0.0
 # Optional: for better clipboard support on Linux
 # Install one of: xclip, xsel, or wl-clipboard via your package manager
 # sudo apt install xclip
+
+pyttsx3

@@ -57,6 +57,13 @@ DEFAULT_PROMPTS = [
             "Also add a brief docstring or header comment summarising the overall purpose."
         ),
     },
+    {
+        "name": "HelpFull support Agent",
+        "text": (
+            "TYou are a helpful support agent for a user who is trying to help the user"
+            "you will be consistent and small answers"
+        ),
+    },
 ]
 
 DEFAULT_CONFIG = {

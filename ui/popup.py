@@ -72,24 +72,68 @@ class ExplanationPopup(tk.Toplevel):
         self._start_stream()
         self._poll_queue()
 
-    def _speak_explanation(self, text: str):
-        """Speak the explanation text using system TTS."""
+    def _speak_explanation(self, text: str, use_pyttsx3: bool = False):
+        """Speak or generate audio from text."""
+
         try:
-            import pyttsx3
-            engine = pyttsx3.init()
-            # Adjust rate - slightly slower for better clarity
-            engine.setProperty('rate', 150)
-            # Speak the text
-            engine.say(text)
-            engine.runAndWait()
+            if use_pyttsx3:
+                import pyttsx3
+
+                engine = pyttsx3.init()
+                engine.setProperty('rate', 150)
+
+                voices = engine.getProperty('voices')
+                if voices:
+                    engine.setProperty('voice', voices[0].id)
+
+                engine.say(text)
+                engine.runAndWait()
+
+            else:
+                import asyncio
+                import edge_tts
+                import os
+                import subprocess
+
+                async def speak():
+                    file_path = "output.mp3"
+                    communicate = edge_tts.Communicate(
+                        text, voice="en-US-AriaNeural"
+                    )
+                    await communicate.save(file_path)
+
+                    # 🔥 Play via Windows (WSL trick)
+                    win_path = subprocess.check_output(
+                        ["wslpath", "-w", file_path]
+                    ).decode().strip()
+
+                    # ✅ Use Windows to open it
+                    os.system(f'cmd.exe /C start "" "{win_path}"')
+
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        asyncio.create_task(speak())
+                    else:
+                        loop.run_until_complete(speak())
+                except RuntimeError:
+                    asyncio.run(speak())
+
         except ImportError:
-            self.status_var.set("Install pyttsx3 for audio: pip install pyttsx3")
+            self.status_var.set("Install edge-tts: pip install edge-tts")
             self.status_lbl.configure(fg=DARK_ERROR)
-            self.after(2500, lambda: self.status_var.set("Done" if not self._streaming else "Generating..."))
+
         except Exception as e:
             self.status_var.set(f"Audio error: {e}")
             self.status_lbl.configure(fg=DARK_ERROR)
-            self.after(2500, lambda: self.status_var.set("Done" if not self._streaming else "Generating..."))
+
+        finally:
+            self.after(
+                2500,
+                lambda: self.status_var.set(
+                    "Done" if not self._streaming else "Generating..."
+                ),
+            )
 
     # ── Window ────────────────────────────────────────────────────────────────
 
