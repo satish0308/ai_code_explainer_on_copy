@@ -1,0 +1,13 @@
+# Core
+requests>=2.31.0
+
+# Clipboard access (fallback for non-X11 systems)
+pyperclip>=1.8.2
+
+# System tray (optional but recommended)
+pystray>=0.19.5
+Pillow>=10.0.0
+
+# Optional: for better clipboard support on Linux
+# Install one of: xclip, xsel, or wl-clipboard via your package manager
+# sudo apt install xclip
