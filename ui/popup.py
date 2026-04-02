@@ -150,16 +150,6 @@ class ExplanationPopup(tk.Toplevel):
         )
         self.exp_box.pack(fill="both", expand=True, padx=8, pady=(0, 4))
 
-        # Bind zoom to the main explanation text box (primary zoom target)
-        self.exp_box.bind("<Control-MouseWheel>", self._on_ctrl_scroll)
-        self.exp_box.bind("<Control-Button-4>",   self._on_ctrl_scroll)
-        self.exp_box.bind("<Control-Button-5>",   self._on_ctrl_scroll)
-
-        # Also bind to parent window for WSL compatibility
-        self.bind("<Control-MouseWheel>", self._on_ctrl_scroll)
-        self.bind("<Control-Button-4>",   self._on_ctrl_scroll)
-        self.bind("<Control-Button-5>",   self._on_ctrl_scroll)
-
         # Define all tags — "body" is applied to EVERY inserted chunk
         self.exp_box.tag_configure("body",
             font=("Segoe UI", self._font_size),
@@ -173,14 +163,14 @@ class ExplanationPopup(tk.Toplevel):
         self.exp_box.tag_configure("error",
             foreground=DARK_ERROR)
 
-        # Ctrl+scroll resizes font
-        # Bind to exp_box (where user typically scrolls) and self (popup window)
+        # Ctrl+scroll resizes font - bind to both exp_box and popup window
+        # This is needed for WSL compatibility where event delivery may vary
         self.exp_box.bind("<Control-MouseWheel>", self._on_ctrl_scroll)
-        self.exp_box.bind("<Control-Button-4>",   self._on_ctrl_scroll)
-        self.exp_box.bind("<Control-Button-5>",   self._on_ctrl_scroll)
+        self.exp_box.bind("<Control-Button-4>", self._on_ctrl_scroll)
+        self.exp_box.bind("<Control-Button-5>", self._on_ctrl_scroll)
         self.bind("<Control-MouseWheel>", self._on_ctrl_scroll)
-        self.bind("<Control-Button-4>",   self._on_ctrl_scroll)
-        self.bind("<Control-Button-5>",   self._on_ctrl_scroll)
+        self.bind("<Control-Button-4>", self._on_ctrl_scroll)
+        self.bind("<Control-Button-5>", self._on_ctrl_scroll)
 
         paned.add(ef, minsize=140)
 
@@ -236,15 +226,7 @@ class ExplanationPopup(tk.Toplevel):
             return
         self._font_size = new_size
 
-        # Save the full text content
-        self.exp_box.configure(state="normal")
-        content = self.exp_box.get("1.0", "end-1c")
-
-        # Clear, change the widget base font, reinsert — guaranteed re-render
-        self.exp_box.delete("1.0", "end")
-        self.exp_box.configure(font=("Segoe UI", new_size))
-
-        # Re-apply tag definitions at new size
+        # Update tag configurations with new font size
         self.exp_box.tag_configure("body",
             font=("Segoe UI", new_size), foreground=DARK_TEXT)
         self.exp_box.tag_configure("header",
@@ -254,28 +236,35 @@ class ExplanationPopup(tk.Toplevel):
             font=("Consolas", max(MIN_SIZE, new_size - 1)),
             background=DARK_CODE_BG, foreground="#a6e3a1")
 
-        # Reinsert (tagged so future resizes also work)
-        if content:
-            self.exp_box.insert("1.0", content, "body")
+        # Re-apply "body" tag to all existing text to update font
+        self.exp_box.configure(state="normal")
+        # Remove all tags first, then re-apply with "body" tag
+        # This ensures all text gets the new font
+        self.exp_box.tag_remove("body", "1.0", "end")
+        self.exp_box.tag_add("body", "1.0", "end")
 
         self.exp_box.configure(state="disabled")
         self.font_size_lbl.configure(text=f"{new_size}pt")
 
     def _on_ctrl_scroll(self, event):
-        # Ensure popup has focus
-        self.focus_set()
+        # Debug: print event details
+        print(f"Event: {event}, widget: {event.widget}, num: {getattr(event, 'num', 'N/A')}, delta: {getattr(event, 'delta', 'N/A')}")
 
         # Detect scroll direction based on event source
         if hasattr(event, "num"):          # Linux X11
             # Button-4 = scroll up, Button-5 = scroll down
             delta = +2 if event.num == 4 else -2
+            print(f"Linux scroll: num={event.num}, delta={delta}")
         elif hasattr(event, "delta"):      # Windows / WSL
             # Positive delta = scroll up, negative = scroll down
             delta = +2 if event.delta > 0 else -2
+            print(f"Windows/WSL scroll: delta={event.delta}, result={delta}")
         else:
+            print("No delta/num attribute found")
             return "break"
 
         self._resize_font(delta)
+        print(f"Font size now: {self._font_size}pt")
         return "break"
 
     # ── Streaming ─────────────────────────────────────────────────────────────
