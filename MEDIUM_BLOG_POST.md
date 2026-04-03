@@ -454,8 +454,8 @@ Here's how to set up the project locally:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/auto-code-explainer.git
-cd auto-code-explainer
+git clone https://github.com/satish0308/ai_code_explainer_on_copy.git
+cd ai_code_explainer_on_copy
 
 # Create a virtual environment
 python -m venv .venv
@@ -587,7 +587,7 @@ If you want to try Auto Code Explainer:
 
 ## Resources & Links
 
-- **GitHub**: [github.com/yourusername/auto-code-explainer](https://github.com/yourusername/auto-code-explainer)
+- **GitHub**: [github.com/satish0308/ai_code_explainer_on_copy](https://github.com/satish0308/ai_code_explainer_on_copy)
 - **Issue Tracker**: Report bugs or request features
 - **Contributing**: PRs are welcome! Check `CONTRIBUTING.md` for guidelines
 
